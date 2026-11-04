@@ -1,0 +1,10 @@
+id: tablet
+name: Graphics tablet support
+name_zh: 数位板支持
+description: libwacom device metadata
+description_zh: libwacom 设备描述支持
+category: tablet
+packages: [libwacom]
+match:
+  any:
+    - capability: tablet

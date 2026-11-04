@@ -1,0 +1,98 @@
+#include "ProfileSelection.h"
+
+#include <algorithm>
+
+namespace {
+QStringList sorted(QStringList items)
+{
+    items.sort(Qt::CaseInsensitive);
+    return items;
+}
+}
+
+void ProfileSelection::reset(const HardwareSnapshot &state)
+{
+    selected_.clear();
+    for (const auto &profile : state.profiles) {
+        if (profile.installed) selected_.insert(profile.id);
+    }
+}
+
+void ProfileSelection::refresh(const HardwareSnapshot &state, bool retainPending)
+{
+    if (!retainPending) {
+        reset(state);
+    } else {
+        QSet<QString> known;
+        for (const auto &profile : state.profiles) known.insert(profile.id);
+        selected_.intersect(known);
+        for (const auto &profile : state.profiles) {
+            if (profile.source == ProfileSource::Support && profile.installed)
+                selected_.insert(profile.id);
+            // An externally installed CHWD profile was never staged for removal.
+            if (profile.source == ProfileSource::Chwd && profile.installed
+                && !baseline_.contains(profile.chwdName))
+                selected_.insert(profile.id);
+        }
+    }
+    baseline_.clear();
+    for (const auto &profile : state.profiles) {
+        if (profile.source == ProfileSource::Chwd && profile.installed)
+            baseline_.insert(profile.chwdName);
+    }
+}
+
+bool ProfileSelection::select(const QString &id, bool enabled, const HardwareSnapshot &state)
+{
+    const auto *profile = state.profile(id);
+    if (!profile || (!profile->applicable && !profile->installed)) return false;
+    if (profile->systemManaged && profile->installed && !enabled) return false;
+    if (enabled) {
+        if (profile->source == ProfileSource::Chwd && !profile->conflictGroup.isEmpty()) {
+            for (const auto &other : state.profiles) {
+                if (other.id != id && other.source == ProfileSource::Chwd
+                    && other.conflictGroup == profile->conflictGroup)
+                    selected_.remove(other.id);
+            }
+        }
+        selected_.insert(id);
+    } else {
+        selected_.remove(id);
+    }
+    return true;
+}
+
+QStringList ProfileSelection::installingChwd(const HardwareSnapshot &state) const
+{
+    QStringList names;
+    for (const auto &profile : state.profiles) {
+        if (profile.source == ProfileSource::Chwd && selected_.contains(profile.id)
+            && !profile.installed) names.append(profile.chwdName);
+    }
+    return sorted(names);
+}
+
+QStringList ProfileSelection::removingChwd(const HardwareSnapshot &state) const
+{
+    QStringList names;
+    for (const auto &profile : state.profiles) {
+        if (profile.source == ProfileSource::Chwd && !selected_.contains(profile.id)
+            && profile.installed) names.append(profile.chwdName);
+    }
+    return sorted(names);
+}
+
+QStringList ProfileSelection::enablingSupport(const HardwareSnapshot &state) const
+{
+    QStringList names;
+    for (const auto &profile : state.profiles) {
+        if (profile.source == ProfileSource::Support && selected_.contains(profile.id)
+            && !profile.installed) names.append(profile.id);
+    }
+    return sorted(names);
+}
+
+int ProfileSelection::pendingCount(const HardwareSnapshot &state) const
+{
+    return installingChwd(state).size() + removingChwd(state).size() + enablingSupport(state).size();
+}

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=CatOS Hardware Manager
+Name[zh_CN]=CatOS 硬件管理器
+Comment=Hardware drivers and profiles
+Comment[zh_CN]=硬件驱动和配置
+Exec=catos-hardware-manager
+Icon=catos-logo
+Terminal=false
+Categories=Settings;HardwareSettings;System;

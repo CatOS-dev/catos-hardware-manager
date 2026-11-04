@@ -1,0 +1,10 @@
+id: controller
+name: Game controller support
+name_zh: 游戏手柄支持
+description: Steam controller device rules
+description_zh: Steam 手柄设备规则
+category: controller
+packages: [steam-devices]
+match:
+  any:
+    - capability: gamepad

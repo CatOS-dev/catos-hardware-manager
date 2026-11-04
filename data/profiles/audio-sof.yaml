@@ -1,0 +1,12 @@
+id: audio-sof
+name: Intel SOF firmware
+name_zh: Intel SOF 音频固件
+description: Intel Sound Open Firmware
+description_zh: Intel Sound Open Firmware 固件
+category: audio
+packages: [sof-firmware]
+match:
+  any:
+    - driver: sof-audio-pci-intel-tgl
+    - driver: sof-audio-pci-intel-mtl
+    - modalias_prefix: "acpi:INT34C8:"

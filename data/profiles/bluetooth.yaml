@@ -1,0 +1,11 @@
+id: bluetooth
+name: Bluetooth support
+name_zh: 蓝牙支持
+description: BlueZ and Bluetooth service
+description_zh: BlueZ 与蓝牙服务
+category: bluetooth
+packages: [bluez, bluez-utils]
+services: [bluetooth.service]
+match:
+  any:
+    - capability: bluetooth
