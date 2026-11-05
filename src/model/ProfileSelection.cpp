@@ -14,7 +14,8 @@ void ProfileSelection::reset(const HardwareSnapshot &state)
 {
     selected_.clear();
     for (const auto &profile : state.profiles) {
-        if (profile.installed) selected_.insert(profile.id);
+        if (profile.source == ProfileSource::Chwd ? profile.installed : profile.ready)
+            selected_.insert(profile.id);
     }
 }
 
@@ -26,8 +27,9 @@ void ProfileSelection::refresh(const HardwareSnapshot &state, bool retainPending
         QSet<QString> known;
         for (const auto &profile : state.profiles) known.insert(profile.id);
         selected_.intersect(known);
+        for (const auto &id : readySupport_) selected_.remove(id);
         for (const auto &profile : state.profiles) {
-            if (profile.source == ProfileSource::Support && profile.installed)
+            if (profile.source == ProfileSource::Support && profile.ready)
                 selected_.insert(profile.id);
             // An externally installed CHWD profile was never staged for removal.
             if (profile.source == ProfileSource::Chwd && profile.installed
@@ -35,6 +37,9 @@ void ProfileSelection::refresh(const HardwareSnapshot &state, bool retainPending
                 selected_.insert(profile.id);
         }
     }
+    readySupport_.clear();
+    for (const auto &profile : state.profiles)
+        if (profile.source == ProfileSource::Support && profile.ready) readySupport_.insert(profile.id);
     baseline_.clear();
     for (const auto &profile : state.profiles) {
         if (profile.source == ProfileSource::Chwd && profile.installed)
@@ -45,8 +50,8 @@ void ProfileSelection::refresh(const HardwareSnapshot &state, bool retainPending
 bool ProfileSelection::select(const QString &id, bool enabled, const HardwareSnapshot &state)
 {
     const auto *profile = state.profile(id);
-    if (!profile || (!profile->applicable && !profile->installed)) return false;
-    if (profile->systemManaged && profile->installed && !enabled) return false;
+    if (!profile || (!profile->applicable && (profile->source == ProfileSource::Support || !profile->installed))) return false;
+    if (profile->systemManaged && profile->ready && !enabled) return false;
     if (enabled) {
         if (profile->source == ProfileSource::Chwd && !profile->conflictGroup.isEmpty()) {
             for (const auto &other : state.profiles) {
@@ -86,8 +91,8 @@ QStringList ProfileSelection::enablingSupport(const HardwareSnapshot &state) con
 {
     QStringList names;
     for (const auto &profile : state.profiles) {
-        if (profile.source == ProfileSource::Support && selected_.contains(profile.id)
-            && !profile.installed) names.append(profile.id);
+        if (profile.source == ProfileSource::Support && profile.applicable && selected_.contains(profile.id)
+            && !profile.ready) names.append(profile.id);
     }
     return sorted(names);
 }

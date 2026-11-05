@@ -1,5 +1,6 @@
 #include "model/HardwareTypes.h"
 #include "services/HardwareService.h"
+#include "services/HardwareTransaction.h"
 
 #include <QCoreApplication>
 #include <QProcess>
@@ -81,7 +82,7 @@ bool validate(const Request &request, const HardwareSnapshot &snapshot)
     for (const auto &id : request.support) {
         const auto *profile = snapshot.profile(id);
         if (!profile || profile->source != ProfileSource::Support
-            || !profile->applicable || profile->installed) return false;
+            || !profile->applicable || profile->ready) return false;
     }
     return true;
 }
@@ -97,14 +98,6 @@ bool execute(const QString &program, const QStringList &arguments)
     return true;
 }
 
-void step(int index, int total, const QString &action, const QString &profile)
-{
-    const QByteArray actionBytes = action.toUtf8();
-    const QByteArray profileBytes = profile.toUtf8();
-    std::printf("STEP|%d|%d|%s|%s\n", index, total,
-                actionBytes.constData(), profileBytes.constData());
-    std::fflush(stdout);
-}
 }
 
 int main(int argc, char **argv)
@@ -127,59 +120,6 @@ int main(int argc, char **argv)
         return 3;
     }
 
-    QSet<QString> packageSet;
-    QSet<QString> serviceSet;
-    for (const auto &id : request.support) {
-        const auto *profile = before.profile(id);
-        for (const auto &package : profile->packages) {
-            if (!before.installedPackages.contains(package)) packageSet.insert(package);
-        }
-        for (const auto &service : profile->services) {
-            if (!before.enabledServices.contains(service)) serviceSet.insert(service);
-        }
-    }
-    QStringList packages = packageSet.values();
-    QStringList services = serviceSet.values();
-    packages.sort();
-    services.sort();
-    const int total = request.remove.size() + request.install.size()
-                      + (packages.isEmpty() ? 0 : 1) + services.size();
-    int progress = 0;
-
-    for (const auto &name : request.remove) {
-        step(++progress, total, QStringLiteral("remove"), name);
-        if (!execute(QStringLiteral("/usr/bin/chwd"), {QStringLiteral("--remove"), name})) return 4;
-    }
-    for (const auto &name : request.install) {
-        step(++progress, total, QStringLiteral("install"), name);
-        if (!execute(QStringLiteral("/usr/bin/chwd"), {QStringLiteral("--install"), name})) return 4;
-    }
-    if (!packages.isEmpty()) {
-        step(++progress, total, QStringLiteral("packages"), packages.join(QStringLiteral(", ")));
-        QStringList arguments{QStringLiteral("-S"), QStringLiteral("--needed"),
-                              QStringLiteral("--noconfirm"), QStringLiteral("--")};
-        arguments.append(packages);
-        if (!execute(QStringLiteral("/usr/bin/pacman"), arguments)) return 4;
-    }
-    for (const auto &name : services) {
-        step(++progress, total, QStringLiteral("service"), name);
-        if (!execute(QStringLiteral("/usr/bin/systemctl"),
-                     {QStringLiteral("enable"), QStringLiteral("--now"), name})) return 4;
-    }
-    const HardwareSnapshot after = HardwareService::read();
-    if (!after.isValid()) return 4;
-    for (const auto &name : request.remove) {
-        const auto *p = after.profile(QStringLiteral("chwd:") + name);
-        if (p && p->installed) return 4;
-    }
-    for (const auto &name : request.install) {
-        const auto *p = after.profile(QStringLiteral("chwd:") + name);
-        if (!p || !p->installed) return 4;
-    }
-    for (const auto &id : request.support) {
-        const auto *p = after.profile(id);
-        if (!p || !p->installed) return 4;
-    }
-    std::puts("DONE");
-    return 0;
+    return HardwareTransaction::apply(before, request.remove, request.install, request.support,
+        execute, [] { return HardwareService::read(); }) ? 0 : 4;
 }

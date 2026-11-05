@@ -14,6 +14,8 @@ class QFrame;
 class DevicesPage;
 class InstalledProfilesPage;
 class ProfileCatalogPage;
+class FirmwarePage;
+class QCloseEvent;
 template <typename T> class QFutureWatcher;
 
 class HardwareManagerWindow : public QMainWindow {
@@ -21,7 +23,10 @@ class HardwareManagerWindow : public QMainWindow {
 public:
     explicit HardwareManagerWindow(QWidget *parent = nullptr);
 
+protected:
+    void closeEvent(QCloseEvent *event) override;
 private:
+    void exportReport();
     void refresh(bool keepSelection = false);
     void showPage(int index);
     void showData();
@@ -32,6 +37,8 @@ private:
     HardwareSnapshot snapshot_;
     ProfileSelection selection_;
     bool ready_ = false;
+    bool applying_ = false;
+    bool refreshQueued_ = false;
     bool refreshRetain_ = false;
     QFutureWatcher<HardwareSnapshot> *watcher_ = nullptr;
     QVector<QPushButton *> navigation_;
@@ -40,6 +47,7 @@ private:
     DevicesPage *devices_ = nullptr;
     InstalledProfilesPage *installed_ = nullptr;
     ProfileCatalogPage *catalog_ = nullptr;
+    FirmwarePage *firmware_ = nullptr;
     QFrame *footer_ = nullptr;
     QLabel *pending_ = nullptr;
     QPushButton *discard_ = nullptr;

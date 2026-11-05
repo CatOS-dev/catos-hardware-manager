@@ -29,9 +29,11 @@ ProfileRow::ProfileRow(const HardwareProfile &profile, const ProfileSelection &s
         text->addWidget(HardwareUi::muted(description, summary, true));
     QString state;
     if (profile.source == ProfileSource::Support) {
-        if (!profile.applicable) state = tr("Not applicable");
-        else if (profile.installed) state = tr("System support ready");
+        if (!profile.applicable && profile.installed) state = tr("Installed; device disconnected");
+        else if (!profile.applicable) state = tr("Not applicable");
+        else if (profile.ready) state = tr("System support ready");
         else if (selection.selected(profile.id)) state = tr("Pending installation");
+        else if (profile.installed) state = tr("Service needs attention");
         else state = tr("Missing components");
     } else {
         if (profile.installed) state = tr("Installed");
@@ -42,8 +44,8 @@ ProfileRow::ProfileRow(const HardwareProfile &profile, const ProfileSelection &s
 
     // A disabled checkbox suggests a broken button. Only render a checkbox
     // when the profile can actually be staged for a change.
-    const bool canToggle = (profile.applicable || profile.installed)
-        && !(profile.systemManaged && profile.installed);
+    const bool canToggle = (profile.applicable || (profile.source == ProfileSource::Chwd && profile.installed))
+        && !(profile.systemManaged && profile.ready);
     if (canToggle) {
         auto *toggle = new QCheckBox(summary);
         toggle->setAccessibleName(name);
@@ -77,6 +79,10 @@ ProfileRow::ProfileRow(const HardwareProfile &profile, const ProfileSelection &s
                 HardwareUi::muted(profile.services.join(QStringLiteral(", ")), details, true));
         }
         if (profile.source == ProfileSource::Support && profile.applicable) {
+            if (!profile.disabledServices.isEmpty()) {
+                detailsLayout->addWidget(HardwareUi::heading(tr("Services not enabled"), details));
+                detailsLayout->addWidget(HardwareUi::muted(profile.disabledServices.join(QStringLiteral(", ")), details, true));
+            }
             if (!profile.missingPackages.isEmpty()) {
                 detailsLayout->addWidget(HardwareUi::heading(tr("Missing packages"), details));
                 detailsLayout->addWidget(HardwareUi::muted(

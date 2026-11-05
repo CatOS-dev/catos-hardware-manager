@@ -25,6 +25,50 @@
       <source>No additional profile</source>
       <translation>没有额外可用配置</translation>
     </message>
+    <message>
+      <source>Missing support components</source>
+      <translation>缺少硬件支持组件</translation>
+    </message>
+    <message>
+      <source>Service needs attention</source>
+      <translation>服务需要处理</translation>
+    </message>
+    <message>
+      <source>Driver bound; function not tested</source>
+      <translation>驱动已绑定，尚未测试功能</translation>
+    </message>
+    <message>
+      <source>Detected; function not tested</source>
+      <translation>设备已识别，尚未测试功能</translation>
+    </message>
+    <message>
+      <source>Open sound settings</source>
+      <translation>打开声音设置</translation>
+    </message>
+    <message>
+      <source>Open Bluetooth settings</source>
+      <translation>打开蓝牙设置</translation>
+    </message>
+    <message>
+      <source>Open printer settings and test printing</source>
+      <translation>打开打印机设置与测试打印</translation>
+    </message>
+    <message>
+      <source>Open camera test tool</source>
+      <translation>打开摄像头测试工具</translation>
+    </message>
+    <message>
+      <source>Open document scanner</source>
+      <translation>打开文档扫描工具</translation>
+    </message>
+    <message>
+      <source>Hardware Manager</source>
+      <translation>硬件管理器</translation>
+    </message>
+    <message>
+      <source>Could not open the device tool.</source>
+      <translation>无法打开设备工具。</translation>
+    </message>
   </context>
   <context>
     <name>DevicesPage</name>
@@ -48,6 +92,18 @@
       <location filename="../src/pages/DevicesPage.cpp" line="139" />
       <source>No detected devices</source>
       <translation>未检测到支持的设备</translation>
+    </message>
+    <message>
+      <source>Diagnostic report</source>
+      <translation>诊断报告</translation>
+    </message>
+    <message>
+      <source>Hardware query failed: %1</source>
+      <translation>硬件查询失败：%1</translation>
+    </message>
+    <message>
+      <source>Set up scanner detection</source>
+      <translation>安装扫描仪发现组件</translation>
     </message>
   </context>
   <context>
@@ -170,6 +226,54 @@
       <source>%1 pending changes</source>
       <translation>%1 项待应用更改</translation>
     </message>
+    <message>
+      <source>Firmware updates</source>
+      <translation>固件更新</translation>
+    </message>
+    <message>
+      <source>Last operation</source>
+      <translation>上次操作</translation>
+    </message>
+    <message>
+      <source>Hardware information refreshed</source>
+      <translation>硬件信息已刷新</translation>
+    </message>
+    <message>
+      <source>Hardware query failed</source>
+      <translation>硬件查询失败</translation>
+    </message>
+    <message>
+      <source>Refreshing hardware information…</source>
+      <translation>正在刷新硬件信息…</translation>
+    </message>
+    <message>
+      <source>Wait for the current operation to finish before closing.</source>
+      <translation>请等待当前操作结束后再关闭。</translation>
+    </message>
+    <message>
+      <source>Close and discard pending changes?</source>
+      <translation>是否关闭并放弃待应用的更改？</translation>
+    </message>
+    <message>
+      <source>Diagnostic report preview</source>
+      <translation>诊断报告预览</translation>
+    </message>
+    <message>
+      <source>This report excludes serial numbers, device names, addresses, hostnames and raw logs. Review it before saving.</source>
+      <translation>本报告不包含序列号、设备名称、地址、主机名和原始日志。保存前请检查内容。</translation>
+    </message>
+    <message>
+      <source>Save diagnostic report</source>
+      <translation>保存诊断报告</translation>
+    </message>
+    <message>
+      <source>JSON files (*.json)</source>
+      <translation>JSON 文件 (*.json)</translation>
+    </message>
+    <message>
+      <source>Could not save diagnostic report.</source>
+      <translation>无法保存诊断报告。</translation>
+    </message>
   </context>
   <context>
     <name>InstalledProfilesPage</name>
@@ -275,6 +379,18 @@
       <source>Services</source>
       <translation>系统服务</translation>
     </message>
+    <message>
+      <source>Installed; device disconnected</source>
+      <translation>已安装，设备未连接</translation>
+    </message>
+    <message>
+      <source>Service needs attention</source>
+      <translation>服务需要处理</translation>
+    </message>
+    <message>
+      <source>Services not enabled</source>
+      <translation>未启用的服务</translation>
+    </message>
   </context>
   <context>
     <name>QObject</name>
@@ -352,6 +468,156 @@
       <location filename="../src/dialogs/ApplyDialog.cpp" line="177" />
       <source>Some changes could not be applied.</source>
       <translation>部分硬件配置未能完成。</translation>
+    </message>
+    <message>
+      <source>Operation</source>
+      <translation>操作</translation>
+    </message>
+    <message>
+      <source>Result</source>
+      <translation>结果</translation>
+    </message>
+    <message>
+      <source>Copy log</source>
+      <translation>复制日志</translation>
+    </message>
+    <message>
+      <source>Not executed</source>
+      <translation>未执行</translation>
+    </message>
+    <message>
+      <source>Running</source>
+      <translation>正在执行</translation>
+    </message>
+    <message>
+      <source>Completed</source>
+      <translation>已完成</translation>
+    </message>
+    <message>
+      <source>Failed</source>
+      <translation>失败</translation>
+    </message>
+    <message>
+      <source>Interrupted</source>
+      <translation>已中断</translation>
+    </message>
+    <message>
+      <source>Hardware configurations applied. Test your devices; driver changes may require a restart.</source>
+      <translation>硬件配置已应用。请测试设备；驱动更改可能需要重启。</translation>
+    </message>
+    <message>
+      <source>Failed. Review completed steps and recovery results before retrying.</source>
+      <translation>操作失败。重试前请检查已完成步骤和恢复结果。</translation>
+    </message>
+    <message>
+      <source>Could not save the operation log. Copy it before closing.</source>
+      <translation>无法保存操作日志。请在关闭前复制日志。</translation>
+    </message>
+    <message>
+      <source>Last operation</source>
+      <translation>上次操作</translation>
+    </message>
+    <message>
+      <source>No saved operation log.</source>
+      <translation>没有已保存的操作日志。</translation>
+    </message>
+    <message>
+      <source>Driver packages are downloaded before switching. CHWD hooks and conditional packages are checked only during execution; recovery may need manual intervention.</source>
+      <translation>切换前会先下载驱动包。CHWD 钩子与条件软件包仅在执行时检查；恢复可能需要手动处理。</translation>
+    </message>
+  </context>
+  <context>
+    <name>FirmwarePage</name>
+    <message>
+      <source>Firmware updates</source>
+      <translation>固件更新</translation>
+    </message>
+    <message>
+      <source>Check for firmware updates to list supported devices.</source>
+      <translation>检查固件更新以列出受支持的设备。</translation>
+    </message>
+    <message>
+      <source>Check for updates</source>
+      <translation>检查更新</translation>
+    </message>
+    <message>
+      <source>Install firmware support</source>
+      <translation>安装固件支持</translation>
+    </message>
+    <message>
+      <source>Update selected device</source>
+      <translation>更新所选设备</translation>
+    </message>
+    <message>
+      <source>Device</source>
+      <translation>设备</translation>
+    </message>
+    <message>
+      <source>Current version</source>
+      <translation>当前版本</translation>
+    </message>
+    <message>
+      <source>Available version</source>
+      <translation>可用版本</translation>
+    </message>
+    <message>
+      <source>Update details</source>
+      <translation>更新说明</translation>
+    </message>
+    <message>
+      <source>Firmware update</source>
+      <translation>固件更新</translation>
+    </message>
+    <message>
+      <source>Apply the displayed update to %1? Keep power connected. Some updates are staged for the next restart.</source>
+      <translation>是否为 %1 应用所示更新？请保持电源连接。部分更新将在下次重启时执行。</translation>
+    </message>
+    <message>
+      <source>Could not start firmware manager: %1</source>
+      <translation>无法启动固件管理器：%1</translation>
+    </message>
+    <message>
+      <source>Firmware operation failed. Review the details and try again.</source>
+      <translation>固件操作失败。请查看详情后重试。</translation>
+    </message>
+    <message>
+      <source>Firmware operation finished. Restart if requested by the device; check again to verify its version.</source>
+      <translation>固件操作结束。如设备要求，请重启；之后再次检查以验证版本。</translation>
+    </message>
+    <message>
+      <source>Invalid firmware manager response.</source>
+      <translation>固件管理器返回了无效的数据。</translation>
+    </message>
+    <message>
+      <source>No firmware devices reported.</source>
+      <translation>未发现固件设备。</translation>
+    </message>
+    <message>
+      <source>Check complete. Updates are available only for devices supported by your enabled firmware remotes.</source>
+      <translation>检查完成。只有已启用固件源支持的设备才会提供更新。</translation>
+    </message>
+    <message>
+      <source>Install firmware support to discover devices and updates.</source>
+      <translation>安装固件支持以发现设备和更新。</translation>
+    </message>
+    <message>
+      <source>Firmware operation in progress…</source>
+      <translation>正在执行固件操作…</translation>
+    </message>
+  </context>
+  <context>
+    <name>HardwareService</name>
+    <message>
+      <source>Cannot query service %1: %2</source>
+      <translation>无法查询服务 %1：%2</translation>
+    </message>
+    <message>
+      <source>Driver query unavailable: %1</source>
+      <translation>驱动查询不可用：%1</translation>
+    </message>
+    <message>
+      <source>Invalid CHWD response</source>
+      <translation>CHWD 返回数据无效</translation>
     </message>
   </context>
 </TS>

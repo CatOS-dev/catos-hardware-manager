@@ -38,6 +38,9 @@ DevicesPage::DevicesPage(QWidget *parent) : QWidget(parent)
     refresh->setAccessibleName(tr("Refresh"));
     connect(refresh, &QPushButton::clicked, this, &DevicesPage::refreshRequested);
     heading->addWidget(refresh);
+    auto *report = new QPushButton(tr("Diagnostic report"), this);
+    connect(report, &QPushButton::clicked, this, &DevicesPage::reportRequested);
+    heading->addWidget(report);
     page->addLayout(heading);
     page->addSpacing(22);
 
@@ -65,6 +68,18 @@ void DevicesPage::rebuild()
 {
     const int previous = scroll_->verticalScrollBar()->value();
     HardwareUi::clear(content_);
+    if (!snapshot_.error.isEmpty())
+        content_->addWidget(HardwareUi::muted(tr("Hardware query failed: %1").arg(snapshot_.error), this, true));
+    for (const auto &warning : snapshot_.warnings)
+        content_->addWidget(HardwareUi::muted(warning, this, true));
+    const auto *scanner = snapshot_.profile(QStringLiteral("support:scanner"));
+    if (scanner && !scanner->ready) {
+        auto *setup = new QPushButton(tr("Set up scanner detection"), this);
+        connect(setup, &QPushButton::clicked, this, [this] {
+            emit profileToggled(QStringLiteral("support:scanner"), true);
+        });
+        content_->addWidget(setup);
+    }
     const QVector<DeviceCategory> categories{
         DeviceCategory::Graphics, DeviceCategory::Network, DeviceCategory::Audio,
         DeviceCategory::Bluetooth, DeviceCategory::Camera, DeviceCategory::Printer,

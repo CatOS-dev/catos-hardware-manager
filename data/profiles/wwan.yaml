@@ -4,6 +4,7 @@ name_zh: 移动宽带支持
 description: ModemManager and USB mode switching
 description_zh: ModemManager 与 USB 模式切换
 category: wwan
+recommended: true
 packages: [modemmanager, usb_modeswitch]
 services: [ModemManager.service]
 match:

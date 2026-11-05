@@ -3,6 +3,15 @@
 #include "widgets/HardwareUi.h"
 
 #include <QCloseEvent>
+#include <QClipboard>
+#include <QApplication>
+#include <QDateTime>
+#include <QDir>
+#include <QFile>
+#include <QSaveFile>
+#include <QStandardPaths>
+#include <QTreeWidget>
+#include <QMap>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFileInfo>
@@ -18,6 +27,11 @@
 #include <QVBoxLayout>
 
 namespace {
+QString resultPath()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+        + QStringLiteral("/last-transaction.log");
+}
 class RunningDialog : public QDialog {
 public:
     using QDialog::QDialog;
@@ -103,6 +117,9 @@ ApplyResult ApplyDialog::execute(QWidget *parent, const HardwareSnapshot &snapsh
     details->addStretch();
     scroller->setWidget(container);
     layout->addWidget(scroller, 1);
+    if (!toInstall.isEmpty() || !toRemove.isEmpty())
+        layout->addWidget(HardwareUi::muted(QObject::tr(
+            "Driver packages are downloaded before switching. CHWD hooks and conditional packages are checked only during execution; recovery may need manual intervention."), &confirm, true));
     layout->addWidget(HardwareUi::muted(QObject::tr(
         "Changes are applied in order. Completed steps may remain if a later operation fails."),
         &confirm, true));
@@ -137,7 +154,16 @@ ApplyResult ApplyDialog::execute(QWidget *parent, const HardwareSnapshot &snapsh
     progressLayout->addWidget(bar);
     auto *log = new QPlainTextEdit(&progress);
     log->setReadOnly(true);
-    log->hide();
+    log->setMaximumBlockCount(5000);
+    auto *steps = new QTreeWidget(&progress);
+    steps->setHeaderLabels({QObject::tr("Operation"), QObject::tr("Result")});
+    progressLayout->addWidget(steps);
+    QMap<int, QTreeWidgetItem *> items;
+    auto *copy = new QPushButton(QObject::tr("Copy log"), &progress);
+    QObject::connect(copy, &QPushButton::clicked, &progress, [log] {
+        QApplication::clipboard()->setText(log->toPlainText());
+    });
+    progressLayout->addWidget(copy, 0, Qt::AlignLeft);
     progressLayout->addWidget(log, 1);
     auto *close = new QPushButton(QObject::tr("Close"), &progress);
     close->setEnabled(false);
@@ -148,34 +174,55 @@ ApplyResult ApplyDialog::execute(QWidget *parent, const HardwareSnapshot &snapsh
     process->setProcessChannelMode(QProcess::MergedChannels);
     QByteArray pending;
     bool successful = false;
-    QObject::connect(process, &QProcess::readyReadStandardOutput, &progress,
-            [process, &pending, message, log, &snapshot] {
-        pending += process->readAllStandardOutput();
+    auto consume = [&pending, message, log, steps, &items, &snapshot, bar] {
         int pos;
         while ((pos = pending.indexOf('\n')) != -1) {
             const QString line = QString::fromUtf8(pending.left(pos)).trimmed();
             pending.remove(0, pos + 1);
-            if (line.startsWith(QLatin1String("STEP|"))) {
-                const auto fields = line.split(QLatin1Char('|'));
-                if (fields.size() == 5) {
-                    QString display = fields[4];
-                    const auto *profile = snapshot.profile(
-                        display.startsWith(QLatin1String("support:"))
-                            ? display : QStringLiteral("chwd:") + display);
-                    if (profile) display = HardwareUi::translatedName(*profile);
-                    message->setText(QObject::tr("Applying %1 of %2: %3")
-                                     .arg(fields[1], fields[2], display));
-                }
-            } else if (!line.isEmpty() && line != QLatin1String("DONE")) log->appendPlainText(line);
+            log->appendPlainText(line);
+            const auto fields = line.split(QLatin1Char('|'));
+            if (fields.size() == 5 && fields[0] == QLatin1String("PLAN")) {
+                const int index = fields[1].toInt();
+                auto *item = new QTreeWidgetItem(steps, {fields[3] + QStringLiteral(": ") + fields[4], QObject::tr("Not executed")});
+                items.insert(index, item);
+                bar->setRange(0, fields[2].toInt());
+            } else if (fields.size() == 5 && fields[0] == QLatin1String("STEP")) {
+                QString display = fields[4];
+                const auto *profile = snapshot.profile(display.startsWith(QLatin1String("support:"))
+                    ? display : QStringLiteral("chwd:") + display);
+                if (profile) display = HardwareUi::translatedName(*profile);
+                message->setText(QObject::tr("Applying %1 of %2: %3").arg(fields[1], fields[2], display));
+                if (auto *item = items.value(fields[1].toInt())) item->setText(1, QObject::tr("Running"));
+            } else if (fields.size() == 3 && fields[0] == QLatin1String("RESULT")) {
+                if (auto *item = items.value(fields[1].toInt()))
+                    item->setText(1, fields[2] == QLatin1String("completed") ? QObject::tr("Completed") : QObject::tr("Failed"));
+                bar->setValue(fields[1].toInt());
+            }
         }
+    };
+    QObject::connect(process, &QProcess::readyReadStandardOutput, &progress, [process, &pending, &consume] {
+        pending += process->readAllStandardOutput();
+        consume();
     });
-    auto finish = [&progress, bar, message, log, close, &successful](bool ok) {
+    auto finish = [&progress, bar, message, log, close, &successful, process, &pending, &consume, &items](bool ok) {
+        pending += process->readAllStandardOutput();
+        if (!pending.isEmpty() && !pending.endsWith('\n')) pending += '\n';
+        consume();
         successful = ok;
+        for (auto *item : items) {
+            if (item->text(1) == QObject::tr("Running")) item->setText(1, QObject::tr("Interrupted"));
+        }
         bar->setRange(0, 1);
         bar->setValue(1);
-        message->setText(ok ? QObject::tr("Hardware configurations applied.")
+        message->setText(ok ? QObject::tr("Hardware configurations applied. Test your devices; driver changes may require a restart.")
                             : QObject::tr("Some changes could not be applied."));
-        if (!ok) log->show();
+        log->appendPlainText(ok ? QObject::tr("Completed") : QObject::tr("Failed. Review completed steps and recovery results before retrying."));
+        QDir().mkpath(QFileInfo(resultPath()).absolutePath());
+        QSaveFile file(resultPath());
+        const QByteArray contents = (QDateTime::currentDateTime().toString(Qt::ISODate)
+            + QLatin1Char('\n') + log->toPlainText()).toUtf8();
+        if (!file.open(QIODevice::WriteOnly) || file.write(contents) != contents.size() || !file.commit())
+            log->appendPlainText(QObject::tr("Could not save the operation log. Copy it before closing."));
         progress.allowClose();
         close->setEnabled(true);
     };
@@ -193,4 +240,28 @@ ApplyResult ApplyDialog::execute(QWidget *parent, const HardwareSnapshot &snapsh
     process->start(QStringLiteral("/usr/bin/pkexec"), arguments);
     progress.exec();
     return successful ? ApplyResult::Applied : ApplyResult::Failed;
+}
+
+void ApplyDialog::showLastResult(QWidget *parent)
+{
+    QFile file(resultPath());
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::information(parent, QObject::tr("Last operation"), QObject::tr("No saved operation log."));
+        return;
+    }
+    QDialog dialog(parent);
+    dialog.setWindowTitle(QObject::tr("Last operation"));
+    dialog.resize(740, 500);
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *text = new QPlainTextEdit(&dialog);
+    text->setReadOnly(true);
+    text->setPlainText(QString::fromUtf8(file.readAll()));
+    layout->addWidget(text);
+    auto *copy = new QPushButton(QObject::tr("Copy log"), &dialog);
+    QObject::connect(copy, &QPushButton::clicked, &dialog, [text] { QApplication::clipboard()->setText(text->toPlainText()); });
+    layout->addWidget(copy);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
+    QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    dialog.exec();
 }

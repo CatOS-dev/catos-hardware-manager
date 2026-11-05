@@ -16,4 +16,5 @@ public:
 private:
     QSet<QString> selected_;
     QSet<QString> baseline_;
+    QSet<QString> readySupport_;
 };

@@ -4,6 +4,7 @@ name_zh: 设备固件管理
 description: fwupd firmware update support
 description_zh: fwupd 固件更新支持
 category: firmware
+discovery: true
 packages: [fwupd]
 match:
   any:

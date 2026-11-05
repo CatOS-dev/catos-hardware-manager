@@ -20,6 +20,10 @@ add_library(catos-hardware-core STATIC
     src/services/ProfileCatalog.cpp
     src/services/HardwareService.h
     src/services/HardwareService.cpp
+    src/services/HardwareTransaction.cpp
+    src/services/DiagnosticReport.cpp
+    src/services/HardwareMonitor.cpp
+    src/services/HardwareMonitor.h
 )
 target_include_directories(catos-hardware-core PUBLIC src)
 target_link_libraries(catos-hardware-core PUBLIC
@@ -32,6 +36,8 @@ qt_add_executable(catos-hardware-manager
     src/app/HardwareManagerWindow.cpp
     src/pages/DevicesPage.h
     src/pages/DevicesPage.cpp
+    src/pages/FirmwarePage.h
+    src/pages/FirmwarePage.cpp
     src/pages/InstalledProfilesPage.h
     src/pages/InstalledProfilesPage.cpp
     src/pages/ProfileCatalogPage.h
@@ -64,3 +70,20 @@ install(FILES ${QM_FILES} DESTINATION share/catos-hardware-manager/translations)
 install(DIRECTORY data/profiles/ DESTINATION share/catos-hardware-manager/profiles
     FILES_MATCHING PATTERN "*.yaml"
 )
+
+include(CTest)
+if(BUILD_TESTING)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    qt_add_executable(catos-hardware-regression tests/HardwareRegressionTest.cpp)
+    target_link_libraries(catos-hardware-regression PRIVATE catos-hardware-core Qt6::Test)
+    target_compile_definitions(catos-hardware-regression PRIVATE PROFILE_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/data/profiles")
+    add_test(NAME hardware-regression COMMAND catos-hardware-regression)
+    qt_add_executable(catos-fake-firmware tests/FakeFirmwareManager.cpp)
+    target_link_libraries(catos-fake-firmware PRIVATE Qt6::Core)
+    qt_add_executable(catos-firmware-test tests/FirmwarePageTest.cpp src/pages/FirmwarePage.cpp src/pages/FirmwarePage.h src/widgets/HardwareUi.cpp)
+    target_link_libraries(catos-firmware-test PRIVATE catos-hardware-core Qt6::Widgets Qt6::Svg Qt6::Test)
+    target_compile_definitions(catos-firmware-test PRIVATE FAKE_FIRMWARE_PROGRAM="$<TARGET_FILE:catos-fake-firmware>")
+    add_dependencies(catos-firmware-test catos-fake-firmware)
+    add_test(NAME firmware-page COMMAND catos-firmware-test)
+    set_tests_properties(firmware-page PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()

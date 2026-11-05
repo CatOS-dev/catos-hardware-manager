@@ -4,6 +4,7 @@ name_zh: Intel SOF 音频固件
 description: Intel Sound Open Firmware
 description_zh: Intel Sound Open Firmware 固件
 category: audio
+recommended: true
 packages: [sof-firmware]
 match:
   any:

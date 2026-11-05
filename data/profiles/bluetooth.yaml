@@ -4,6 +4,7 @@ name_zh: 蓝牙支持
 description: BlueZ and Bluetooth service
 description_zh: BlueZ 与蓝牙服务
 category: bluetooth
+recommended: true
 packages: [bluez, bluez-utils]
 services: [bluetooth.service]
 match:

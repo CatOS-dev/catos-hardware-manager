@@ -142,6 +142,8 @@ QVector<HardwareProfile> ProfileCatalog::load(const QString &directory, QString 
             profile.chineseDescription = field(root, "description_zh");
             profile.category = category(field(root, "category"));
             profile.source = ProfileSource::Support;
+            profile.discovery = root["discovery"] && root["discovery"].as<bool>();
+            profile.recommended = root["recommended"] && root["recommended"].as<bool>();
             profile.packages = list(root["packages"]);
             profile.services = list(root["services"]);
             if (ids.contains(profile.id) || profile.name.isEmpty()

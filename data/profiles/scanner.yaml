@@ -4,6 +4,7 @@ name_zh: 扫描仪支持
 description: SANE and AirScan
 description_zh: SANE 与 AirScan 支持
 category: scanner
+discovery: true
 packages: [sane, sane-airscan]
 match:
   any:

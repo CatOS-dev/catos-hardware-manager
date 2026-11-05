@@ -54,11 +54,15 @@ struct HardwareProfile {
     QStringList services;
     QStringList missingPackages;
     QStringList inactiveServices;
+    QStringList disabledServices;
     QString conflictGroup;
     QVector<HardwareMatchRule> matchRules;
     QString chwdName;
     bool applicable = false;
     bool installed = false;
+    bool ready = false;
+    bool discovery = false;
+    bool recommended = false;
     bool systemManaged = false;  // Support packages shared across software; do not remove automatically.
 };
 
@@ -67,6 +71,7 @@ struct HardwareSnapshot {
     QVector<HardwareProfile> profiles;
     QSet<QString> installedPackages;
     QSet<QString> enabledServices;
+    QSet<QString> activeServices;
     QStringList warnings;
     bool chwdAvailable = false;
     QString error;

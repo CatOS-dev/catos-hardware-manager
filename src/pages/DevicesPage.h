@@ -16,6 +16,7 @@ public:
     void updateState(const HardwareSnapshot &snapshot, const ProfileSelection &selection);
 signals:
     void refreshRequested();
+    void reportRequested();
     void recommendedRequested();
     void profileToggled(const QString &id, bool checked);
 private:

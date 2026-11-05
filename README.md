@@ -67,3 +67,52 @@ device discovery continues to work if CHWD is unavailable.
 
 Installed GUI: /usr/bin/catos-hardware-manager
 Privileged executor: /usr/lib/catos/catos-hardware-apply
+
+## Diagnostics and device support
+
+Installed support is independent of whether an external device is connected.
+Service enablement and active state are checked separately; stopped services
+can be selected for repair without reinstalling their packages. Socket-backed
+profiles check the socket, not an intentionally idle daemon. Discovery-only
+scanner setup is available before SANE or its discovery backend is installed.
+Recommended selection includes only support profiles explicitly marked
+`recommended: true`; optional utilities remain manual choices.
+
+udev events trigger a debounced refresh that preserves pending choices.
+Diagnostic reports have a local preview and export only allowlisted hardware
+IDs, drivers, profile status, missing packages and service status. Device names,
+serials, addresses and raw logs are excluded. Device test/settings shortcuts
+appear when their corresponding desktop tools are installed.
+
+Driver switches download declared packages, dependencies and recovery packages
+before removal. This catches download/dependency failures, but cannot simulate
+CHWD hooks, conditional packages or guarantee conflict-free installation. When
+a switch fails after removal and no replacement is registered, the executor
+attempts to reinstall removed configurations and verifies their recorded state.
+It does not claim atomic rollback or restore partially executed hook effects.
+The application shows completed, failed and unexecuted steps, saves the last
+operation locally, and refreshes actual state so retry targets remaining work.
+
+## Firmware
+
+The firmware page uses the installed `fwupdmgr` client and its authorization
+mechanism. Install firmware support, check for updates to refresh metadata and
+list real devices, then review available versions and confirm a device update.
+The client retains its device safety checks. Automatic history upload and
+remote-enablement prompts are disabled. Remotes must already be configured.
+Some devices stage updates for a restart; the application does not reboot the
+machine automatically. Recheck the version after the required restart.
+Device-specific interactive requests that require a terminal can fail and are
+shown in the operation details. No firmware is flashed by the automated tests.
+
+## Verification
+
+    cmake -S . -B build -G Ninja -DBUILD_TESTING=ON
+    cmake --build build
+    ctest --test-dir build --output-on-failure
+
+Regression tests cover stopped services, disconnected devices, scanner discovery
+bootstrap, download failure before driver removal, recovery after failed driver
+installation, pending selection refresh and diagnostic report privacy. Firmware
+page tests use a separate fake client process to exercise asynchronous JSON
+responses, absent updates and invalid replies without changing the host.

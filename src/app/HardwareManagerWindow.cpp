@@ -5,6 +5,16 @@
 #include "pages/InstalledProfilesPage.h"
 #include "pages/ProfileCatalogPage.h"
 #include "services/HardwareService.h"
+#include "services/HardwareMonitor.h"
+#include "services/DiagnosticReport.h"
+#include "pages/FirmwarePage.h"
+#include <QCloseEvent>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFileDialog>
+#include <QPlainTextEdit>
+#include <QSaveFile>
+#include <QStatusBar>
 #include "widgets/HardwareUi.h"
 
 #include <QApplication>
@@ -58,15 +68,15 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     left->addWidget(branding);
     left->addSpacing(24);
 
-    const QStringList labels{tr("Hardware devices"), tr("Installed profiles"), tr("Profile catalog")};
-    const QStringList icons{QStringLiteral("computer"), QStringLiteral("package"), QStringLiteral("layers")};
+    const QStringList labels{tr("Hardware devices"), tr("Installed profiles"), tr("Profile catalog"), tr("Firmware updates")};
+    const QStringList icons{QStringLiteral("computer"), QStringLiteral("package"), QStringLiteral("layers"), QStringLiteral("computer")};
     for (int i = 0; i < labels.size(); ++i) {
         auto *button = new QPushButton(sidebar);
         button->setFlat(true);
         button->setCheckable(true);
         button->setMinimumHeight(54);
         button->setCursor(Qt::PointingHandCursor);
-        button->setFocusPolicy(Qt::ClickFocus);
+        button->setFocusPolicy(Qt::StrongFocus);
         button->setAccessibleName(labels[i]);
         button->setStyleSheet(QStringLiteral(
             "QPushButton { background: transparent; border: 0; border-radius: 11px; }"
@@ -88,6 +98,9 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
         left->addSpacing(3);
     }
     left->addStretch();
+    auto *history = new QPushButton(tr("Last operation"), sidebar);
+    connect(history, &QPushButton::clicked, this, [this] { ApplyDialog::showLastResult(this); });
+    left->addWidget(history);
     horizontal->addWidget(sidebar);
 
     auto *separator = new QFrame(root);
@@ -106,6 +119,11 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     stack_->addWidget(devices_);
     stack_->addWidget(installed_);
     stack_->addWidget(catalog_);
+    firmware_ = new FirmwarePage(stack_);
+    stack_->addWidget(firmware_);
+    connect(firmware_, &FirmwarePage::refreshRequested, this, [this] {
+        selectProfile(QStringLiteral("support:firmware"), true);
+    });
     vertical->addWidget(stack_, 1);
 
     footer_ = new QFrame(right);
@@ -127,7 +145,13 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     apply_ = new QPushButton(tr("Apply"), footer_);
     connect(apply_, &QPushButton::clicked, this, [this] {
         if (!ready_) return;
+        if (firmware_->isBusy()) {
+            statusBar()->showMessage(tr("Wait for the current operation to finish before closing."));
+            return;
+        }
+        applying_ = true;
         const ApplyResult result = ApplyDialog::execute(this, snapshot_, selection_);
+        applying_ = false;
         if (result != ApplyResult::Cancelled)
             refresh(result == ApplyResult::Failed);
     });
@@ -141,16 +165,36 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     connect(watcher_, &QFutureWatcher<HardwareSnapshot>::finished, this, [this] {
         snapshot_ = watcher_->result();
         ready_ = snapshot_.isValid();
+        devices_->setEnabled(true);
+        installed_->setEnabled(true);
+        catalog_->setEnabled(true);
+        statusBar()->showMessage(ready_ ? tr("Hardware information refreshed") : tr("Hardware query failed"));
         if (!ready_) {
-            QMessageBox::warning(this, tr("Hardware Manager"),
-                                 tr("Unable to read hardware information."));
-            updateFooter();
+            showData();
+            if (refreshQueued_) {
+                refreshQueued_ = false;
+                QTimer::singleShot(0, this, [this] { refresh(true); });
+            }
             return;
         }
         selection_.refresh(snapshot_, refreshRetain_);
         showData();
+        if (refreshQueued_) {
+            refreshQueued_ = false;
+            QTimer::singleShot(0, this, [this] { refresh(true); });
+        }
     });
 
+    connect(devices_, &DevicesPage::reportRequested, this, &HardwareManagerWindow::exportReport);
+    auto *monitor = new HardwareMonitor(this);
+    auto *debounce = new QTimer(this);
+    debounce->setSingleShot(true);
+    debounce->setInterval(800);
+    connect(monitor, &HardwareMonitor::changed, debounce, [debounce] { debounce->start(); });
+    connect(debounce, &QTimer::timeout, this, [this, debounce] {
+        if (applying_ || firmware_->isBusy()) { debounce->start(); return; }
+        refresh(true);
+    });
     connect(devices_, &DevicesPage::refreshRequested, this, [this] { refresh(true); });
     connect(devices_, &DevicesPage::recommendedRequested, this, &HardwareManagerWindow::selectRecommended);
     // Defer rebuilding the pages until the originating checkbox mouse event
@@ -178,7 +222,12 @@ void HardwareManagerWindow::showPage(int index)
 
 void HardwareManagerWindow::refresh(bool keepSelection)
 {
-    if (watcher_->isRunning()) return;
+    if (watcher_->isRunning()) { refreshQueued_ = true; return; }
+    if (applying_ || firmware_->isBusy()) return;
+    statusBar()->showMessage(tr("Refreshing hardware information…"));
+    devices_->setEnabled(false);
+    installed_->setEnabled(false);
+    catalog_->setEnabled(false);
     ready_ = false;
     refreshRetain_ = keepSelection;
     updateFooter();
@@ -190,13 +239,14 @@ void HardwareManagerWindow::showData()
     devices_->updateState(snapshot_, selection_);
     installed_->updateState(snapshot_, selection_);
     catalog_->updateState(snapshot_, selection_);
+    firmware_->updateState(snapshot_);
     updateFooter();
 }
 
 void HardwareManagerWindow::updateFooter()
 {
     const int pending = selection_.pendingCount(snapshot_);
-    footer_->setVisible(pending > 0);
+    footer_->setVisible(snapshot_.isValid() && pending > 0);
     pending_->setText(tr("%1 pending changes").arg(pending));
     discard_->setEnabled(ready_ && pending > 0);
     apply_->setEnabled(ready_ && pending > 0);
@@ -216,5 +266,48 @@ void HardwareManagerWindow::selectRecommended()
         if (profile && device.recommendedProfile.startsWith(QLatin1String("chwd:")))
             selection_.select(device.recommendedProfile, true, snapshot_);
     }
+    for (const auto &profile : snapshot_.profiles) {
+        if (profile.source == ProfileSource::Support && profile.recommended && profile.applicable && !profile.ready)
+            selection_.select(profile.id, true, snapshot_);
+    }
     showData();
+}
+
+void HardwareManagerWindow::closeEvent(QCloseEvent *event)
+{
+    if (applying_ || firmware_->isBusy()) {
+        event->ignore();
+        statusBar()->showMessage(tr("Wait for the current operation to finish before closing."));
+        return;
+    }
+    if (selection_.pendingCount(snapshot_) > 0 && QMessageBox::question(this, tr("Discard changes"),
+        tr("Close and discard pending changes?")) != QMessageBox::Yes) {
+        event->ignore();
+        return;
+    }
+    QMainWindow::closeEvent(event);
+}
+
+void HardwareManagerWindow::exportReport()
+{
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Diagnostic report preview"));
+    dialog.resize(720, 500);
+    auto *layout = new QVBoxLayout(&dialog);
+    layout->addWidget(HardwareUi::muted(tr("This report excludes serial numbers, device names, addresses, hostnames and raw logs. Review it before saving."), &dialog, true));
+    const auto contents = DiagnosticReport::create(snapshot_);
+    auto *preview = new QPlainTextEdit(&dialog);
+    preview->setReadOnly(true);
+    preview->setPlainText(QString::fromUtf8(contents));
+    layout->addWidget(preview);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, &dialog);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    layout->addWidget(buttons);
+    if (dialog.exec() != QDialog::Accepted) return;
+    const auto path = QFileDialog::getSaveFileName(this, tr("Save diagnostic report"), QStringLiteral("hardware-report.json"), tr("JSON files (*.json)"));
+    if (path.isEmpty()) return;
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly) || file.write(contents) != contents.size() || !file.commit())
+        QMessageBox::warning(this, tr("Hardware Manager"), tr("Could not save diagnostic report."));
 }

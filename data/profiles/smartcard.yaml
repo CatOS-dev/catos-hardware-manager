@@ -4,6 +4,7 @@ name_zh: 智能卡支持
 description: PC/SC and CCID reader support
 description_zh: PC/SC 与 CCID 读卡器支持
 category: smartcard
+recommended: true
 packages: [pcsclite, ccid]
 services: [pcscd.socket]
 match:

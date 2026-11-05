@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <algorithm>
 #include <QJsonObject>
+#include <QProcessEnvironment>
 #include <QProcess>
 
 namespace {
@@ -47,22 +48,35 @@ QByteArray commandOutput(const QString &program, const QStringList &arguments, Q
     process.start(program, arguments);
     if (!process.waitForStarted(6000) || !process.waitForFinished(20000)
         || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) {
-        if (error) *error = QString::fromUtf8(process.readAllStandardError()).trimmed();
+        if (process.state() != QProcess::NotRunning) {
+            process.kill();
+            process.waitForFinished(3000);
+        }
+        if (error) {
+            *error = QString::fromUtf8(process.readAllStandardError()).trimmed();
+            if (error->isEmpty()) *error = process.errorString();
+        }
         return {};
     }
     return process.readAllStandardOutput();
 }
 
-bool enabledService(const QString &name)
+void readService(const QString &name, HardwareSnapshot &snapshot)
 {
-    QProcess process;
-    process.start(QStringLiteral("/usr/bin/systemctl"),
-                  {QStringLiteral("is-enabled"), name});
-    if (!process.waitForStarted(3000) || !process.waitForFinished(3500))
-        return false;
-    const QString output = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
-    return output == QLatin1String("enabled") || output == QLatin1String("static")
-           || output == QLatin1String("indirect");
+    QString error;
+    const auto output = commandOutput(QStringLiteral("/usr/bin/systemctl"),
+        {QStringLiteral("show"), QStringLiteral("--property=UnitFileState,ActiveState"), name}, &error);
+    if (output.isEmpty()) {
+        snapshot.warnings.append(QCoreApplication::translate("HardwareService",
+            "Cannot query service %1: %2").arg(name, error));
+        return;
+    }
+    for (const auto &line : QString::fromUtf8(output).split(QLatin1Char('\n'))) {
+        if (line == QLatin1String("ActiveState=active")) snapshot.activeServices.insert(name);
+        if (line == QLatin1String("UnitFileState=enabled")
+            || line == QLatin1String("UnitFileState=static")
+            || line == QLatin1String("UnitFileState=indirect")) snapshot.enabledServices.insert(name);
+    }
 }
 
 void addProfileToDevice(HardwareDevice &device, const QString &profileId)
@@ -141,6 +155,10 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram)
     const QJsonObject chwd = snapshot.chwdAvailable ? document.object() : QJsonObject();
     const auto installedChwd = strings(chwd.value(QStringLiteral("installedProfiles")).toArray());
     snapshot.warnings = strings(chwd.value(QStringLiteral("warnings")).toArray());
+    if (!snapshot.chwdAvailable)
+        snapshot.warnings.append(QCoreApplication::translate("HardwareService",
+            "Driver query unavailable: %1").arg(error.isEmpty()
+                ? QCoreApplication::translate("HardwareService", "Invalid CHWD response") : error));
     error.clear();
 
     const QByteArray rawPackages = commandOutput(QStringLiteral("/usr/bin/pacman"),
@@ -220,30 +238,9 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram)
     for (const auto &profile : support)
         for (const auto &service : profile.services) serviceNames.insert(service);
     for (const auto &service : serviceNames)
-        if (enabledService(service)) snapshot.enabledServices.insert(service);
+        readService(service, snapshot);
 
-    for (auto profile : support) {
-        for (auto &device : snapshot.devices) {
-            if (ProfileCatalog::matches(profile, device)) {
-                profile.applicable = true;
-                addProfileToDevice(device, profile.id);
-                if (device.category == DeviceCategory::Other)
-                    device.category = profile.category;
-            }
-        }
-        for (const auto &name : profile.packages) {
-            if (!snapshot.installedPackages.contains(name))
-                profile.missingPackages.append(name);
-        }
-        for (const auto &name : profile.services) {
-            if (!snapshot.enabledServices.contains(name))
-                profile.inactiveServices.append(name);
-        }
-        profile.installed = profile.applicable
-            && profile.missingPackages.isEmpty() && profile.inactiveServices.isEmpty();
-        profile.systemManaged = true;
-        snapshot.profiles.append(std::move(profile));
-    }
+    attachSupportProfiles(snapshot, support);
     snapshot.devices.erase(std::remove_if(snapshot.devices.begin(), snapshot.devices.end(),
         [](const HardwareDevice &device) {
             return device.category == DeviceCategory::Other && device.profileIds.isEmpty();
@@ -253,4 +250,37 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram)
         return a.name.localeAwareCompare(b.name) < 0;
     });
     return snapshot;
+}
+
+void HardwareService::updateSupportState(HardwareProfile &profile, const HardwareSnapshot &snapshot)
+{
+    profile.missingPackages.clear();
+    profile.disabledServices.clear();
+    profile.inactiveServices.clear();
+    for (const auto &name : profile.packages)
+        if (!snapshot.installedPackages.contains(name)) profile.missingPackages.append(name);
+    for (const auto &name : profile.services) {
+        if (!snapshot.enabledServices.contains(name)) profile.disabledServices.append(name);
+        if (!snapshot.activeServices.contains(name)) profile.inactiveServices.append(name);
+    }
+    profile.installed = profile.missingPackages.isEmpty() && profile.disabledServices.isEmpty();
+    profile.ready = profile.installed && profile.inactiveServices.isEmpty();
+}
+
+void HardwareService::attachSupportProfiles(HardwareSnapshot &snapshot, const QVector<HardwareProfile> &support)
+{
+    for (auto profile : support) {
+        profile.applicable = profile.discovery;
+        for (auto &device : snapshot.devices) {
+            if (ProfileCatalog::matches(profile, device)) {
+                profile.applicable = true;
+                addProfileToDevice(device, profile.id);
+                if (device.category == DeviceCategory::Other)
+                    device.category = profile.category;
+            }
+        }
+        updateSupportState(profile, snapshot);
+        profile.systemManaged = true;
+        snapshot.profiles.append(std::move(profile));
+    }
 }

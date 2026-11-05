@@ -4,6 +4,9 @@
 #include "ProfileRow.h"
 
 #include <QFileInfo>
+#include <QProcess>
+#include <QStandardPaths>
+#include <QMessageBox>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -47,6 +50,19 @@ DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snaps
             installed.append(HardwareUi::translatedName(*profile));
     }
     if (!installed.isEmpty()) details.append(tr("CHWD: %1").arg(installed.join(QStringLiteral(", "))));
+    bool missing = false;
+    bool serviceIssue = false;
+    for (const auto &id : device.profileIds) {
+        const auto *profile = snapshot.profile(id);
+        if (profile && profile->source == ProfileSource::Support) {
+            missing |= !profile->missingPackages.isEmpty();
+            serviceIssue |= !profile->inactiveServices.isEmpty() || !profile->disabledServices.isEmpty();
+        }
+    }
+    if (missing) details.append(tr("Missing support components"));
+    else if (serviceIssue) details.append(tr("Service needs attention"));
+    else if (!device.driver.isEmpty()) details.append(tr("Driver bound; function not tested"));
+    else details.append(tr("Detected; function not tested"));
     if (!details.isEmpty())
         text->addWidget(HardwareUi::muted(details.join(QStringLiteral(" · ")), button, true));
     line->addLayout(text, 1);
@@ -78,6 +94,31 @@ DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snaps
     }
     if (device.profileIds.isEmpty())
         content->addWidget(HardwareUi::muted(tr("No additional profile"), detail));
+    QString program;
+    QStringList arguments;
+    QString label;
+    switch (device.category) {
+    case DeviceCategory::Audio:
+        program = QStringLiteral("kcmshell6"); arguments = {QStringLiteral("kcm_pulseaudio")}; label = tr("Open sound settings"); break;
+    case DeviceCategory::Bluetooth:
+        program = QStringLiteral("kcmshell6"); arguments = {QStringLiteral("kcm_bluetooth")}; label = tr("Open Bluetooth settings"); break;
+    case DeviceCategory::Printer:
+        program = QStringLiteral("kcmshell6"); arguments = {QStringLiteral("kcm_printer_manager")}; label = tr("Open printer settings and test printing"); break;
+    case DeviceCategory::Camera:
+        program = QStringLiteral("qv4l2"); label = tr("Open camera test tool"); break;
+    case DeviceCategory::Scanner:
+        program = QStringLiteral("simple-scan"); label = tr("Open document scanner"); break;
+    default: break;
+    }
+    const QString executable = QStandardPaths::findExecutable(program);
+    if (!program.isEmpty() && !executable.isEmpty()) {
+        auto *test = new QPushButton(label, detail);
+        connect(test, &QPushButton::clicked, this, [this, executable, arguments] {
+            if (!QProcess::startDetached(executable, arguments))
+                QMessageBox::warning(this, tr("Hardware Manager"), tr("Could not open the device tool."));
+        });
+        content->addWidget(test, 0, Qt::AlignLeft);
+    }
     detail->setVisible(expanded);
     layout->addWidget(detail);
     connect(button, &QPushButton::clicked, this,
