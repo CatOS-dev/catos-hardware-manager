@@ -1,6 +1,8 @@
 #include "pages/FirmwarePage.h"
 #include <QFile>
 #include <QLabel>
+#include <QMessageBox>
+#include <QTimer>
 #include <QPushButton>
 #include <QTemporaryDir>
 #include <QTreeWidget>
@@ -40,6 +42,15 @@ private slots:
         QCOMPARE(tree->topLevelItem(0)->text(2), available ? QStringLiteral("2.0") : QString());
         tree->setCurrentItem(tree->topLevelItem(0));
         QCOMPARE(page.findChild<QPushButton *>(QStringLiteral("updateFirmware"))->isEnabled(), available);
+        state.installedPackages.clear();
+        page.updateState(state);
+        QVERIFY(!check->isEnabled());
+        QVERIFY(!page.findChild<QPushButton *>(QStringLiteral("updateFirmware"))->isEnabled());
+        state.installedPackages.insert(QStringLiteral("fwupd"));
+        page.updateState(state);
+        QVERIFY(check->isEnabled());
+        QVERIFY(!page.findChild<QPushButton *>(QStringLiteral("updateFirmware"))->isEnabled());
+        QCOMPARE(tree->topLevelItemCount(), 0);
         QFile record(path);
         QVERIFY(record.open(QIODevice::ReadOnly));
         const auto commands = record.readAll();
@@ -48,6 +59,38 @@ private slots:
         QVERIFY(commands.contains("get-updates"));
         QVERIFY(commands.contains("--no-unreported-check"));
         QCOMPARE(commands.count('\n'), 3);
+    }
+    void losingSupportDuringConfirmationDoesNotStartUpdate()
+    {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const auto path = directory.filePath(QStringLiteral("commands"));
+        qputenv("CATOS_FIRMWARE_TEST_RECORD", path.toUtf8());
+        qputenv("CATOS_FIRMWARE_TEST_MODE", "available");
+        FirmwarePage page(nullptr, QStringLiteral(FAKE_FIRMWARE_PROGRAM));
+        HardwareSnapshot state;
+        state.installedPackages.insert(QStringLiteral("fwupd"));
+        page.updateState(state);
+        page.findChild<QPushButton *>(QStringLiteral("checkFirmware"))->click();
+        QTRY_VERIFY_WITH_TIMEOUT(!page.isBusy(), 5000);
+        auto *tree = page.findChild<QTreeWidget *>();
+        QCOMPARE(tree->topLevelItemCount(), 1);
+        tree->setCurrentItem(tree->topLevelItem(0));
+        auto *update = page.findChild<QPushButton *>(QStringLiteral("updateFirmware"));
+        QVERIFY(update->isEnabled());
+        QTimer::singleShot(0, &page, [&page, &state] {
+            state.installedPackages.clear();
+            page.updateState(state);
+            page.findChild<QMessageBox *>()->done(QMessageBox::Yes);
+        });
+        update->click();
+        QVERIFY(!page.isBusy());
+        QVERIFY(!update->isEnabled());
+        QFile record(path);
+        QVERIFY(record.open(QIODevice::ReadOnly));
+        const auto commands = record.readAll();
+        QCOMPARE(commands.count('\n'), 3);
+        QVERIFY(!commands.contains("update --"));
     }
     void invalidReplyDoesNotEnableUpdate()
     {

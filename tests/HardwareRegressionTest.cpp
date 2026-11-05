@@ -37,6 +37,7 @@ private:
     HardwareSnapshot drivers() const
     {
         HardwareSnapshot state;
+        state.chwdAvailable = true;
         for (const auto &name : {QStringLiteral("old"), QStringLiteral("new")}) {
             HardwareProfile profile;
             profile.source = ProfileSource::Chwd;
@@ -102,6 +103,39 @@ private slots:
         selection.refresh(state, false);
         QVERIFY(selection.select(scanner->id, true, state));
         QCOMPARE(selection.enablingSupport(state), QStringList{scanner->id});
+    }
+    void removalDoesNotDownloadRecoveryPackages()
+    {
+        auto state = drivers();
+        QStringList calls;
+        const bool result = HardwareTransaction::apply(state, {QStringLiteral("old")}, {}, {},
+            [&calls, &state](const QString &program, const QStringList &arguments) {
+                calls.append(program + QLatin1Char(' ') + arguments.join(QLatin1Char(' ')));
+                state.profiles[0].installed = false;
+                return true;
+            }, [&state] { return state; });
+        QVERIFY(result);
+        QCOMPARE(calls, QStringList{QStringLiteral("/usr/bin/chwd --remove old")});
+    }
+    void missingChwdCannotVerifyRemoval()
+    {
+        const auto before = drivers();
+        const bool result = HardwareTransaction::apply(before, {QStringLiteral("old")}, {}, {},
+            [](const QString &, const QStringList &) { return true; }, [] { return HardwareSnapshot{}; });
+        QVERIFY(!result);
+    }
+    void missingChwdCannotAuthorizeRecovery()
+    {
+        const auto before = drivers();
+        QStringList calls;
+        const bool result = HardwareTransaction::apply(before, {QStringLiteral("old")}, {QStringLiteral("new")}, {},
+            [&calls](const QString &program, const QStringList &arguments) {
+                calls.append(program + QLatin1Char(' ') + arguments.join(QLatin1Char(' ')));
+                return arguments != QStringList{QStringLiteral("--install"), QStringLiteral("new")};
+            }, [] { return HardwareSnapshot{}; });
+        QVERIFY(!result);
+        QCOMPARE(calls.size(), 3);
+        QCOMPARE(calls.last(), QStringLiteral("/usr/bin/chwd --install new"));
     }
     void failedDownloadNeverRemovesDriver()
     {

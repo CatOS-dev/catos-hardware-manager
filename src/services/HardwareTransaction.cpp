@@ -7,6 +7,11 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
            const QStringList &install, const QStringList &support,
            const Runner &run, const Reader &read)
 {
+    const bool changesDrivers = !remove.isEmpty() || !install.isEmpty();
+    if (!before.isValid() || (changesDrivers && !before.chwdAvailable)) {
+        std::fprintf(stderr, "Cannot query the initial hardware state. Refresh before applying changes.\n");
+        return false;
+    }
     struct Step { QString action; QString target; QString program; QStringList arguments; };
     QVector<Step> steps;
     QSet<QString> packageSet;
@@ -22,7 +27,9 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
         }
     }
     downloadSet = packageSet;
-    for (const auto &name : install + remove) {
+    QStringList downloadProfiles = install;
+    if (!install.isEmpty()) downloadProfiles.append(remove);
+    for (const auto &name : downloadProfiles) {
         const auto *profile = before.profile(QStringLiteral("chwd:") + name);
         if (!profile) return false;
         for (const auto &package : profile->packages) downloadSet.insert(package);
@@ -74,7 +81,7 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
             // must not undo an otherwise successful driver switch.
             if ((step.action == QLatin1String("remove") || step.action == QLatin1String("install")) && !removed.isEmpty()) {
                 const auto current = read();
-                bool canRestore = current.isValid();
+                bool canRestore = current.isValid() && current.chwdAvailable;
                 for (const auto &name : install) {
                     const auto *profile = current.profile(QStringLiteral("chwd:") + name);
                     if (profile && profile->installed) canRestore = false;
@@ -83,7 +90,7 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
                     const bool ran = canRestore && run(QStringLiteral("/usr/bin/chwd"), {QStringLiteral("--install"), name});
                     const auto recovered = read();
                     const auto *profile = recovered.profile(QStringLiteral("chwd:") + name);
-                    const bool restored = ran && recovered.isValid() && profile && profile->installed;
+                    const bool restored = ran && recovered.isValid() && recovered.chwdAvailable && profile && profile->installed;
                     std::printf("RECOVERY|%s|%s\n", name.toUtf8().constData(), restored ? "completed" : "needs-attention");
                 }
                 std::fflush(stdout);
@@ -95,7 +102,7 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
         if (step.action == QLatin1String("remove")) removed.append(step.target);
     }
     const auto after = read();
-    if (!after.isValid()) {
+    if (!after.isValid() || (changesDrivers && !after.chwdAvailable)) {
         std::fprintf(stderr, "Cannot verify the final hardware state. Refresh before retrying.\n");
         return false;
     }

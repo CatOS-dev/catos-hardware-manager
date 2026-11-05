@@ -48,10 +48,12 @@ FirmwarePage::FirmwarePage(QWidget *parent, const QString &program) : QWidget(pa
     });
     connect(update_, &QPushButton::clicked, this, [this] {
         auto *item = devices_->currentItem();
-        if (!item || !item->data(0, Qt::UserRole + 1).toBool()) return;
+        if (!available_ || busy_ || !item || !item->data(0, Qt::UserRole + 1).toBool()) return;
+        const QString device = item->data(0, Qt::UserRole).toString();
         if (QMessageBox::question(this, tr("Firmware update"), tr("Apply the displayed update to %1? Keep power connected. Some updates are staged for the next restart.").arg(item->text(0))) != QMessageBox::Yes) return;
+        if (!available_ || busy_) return;
         log_->clear();
-        start(QStringLiteral("update"), item->data(0, Qt::UserRole).toString());
+        start(QStringLiteral("update"), device);
     });
     process_ = new QProcess(this);
     connect(process_, &QProcess::readyReadStandardOutput, this, [this] {
@@ -105,7 +107,14 @@ FirmwarePage::FirmwarePage(QWidget *parent, const QString &program) : QWidget(pa
 
 void FirmwarePage::updateState(const HardwareSnapshot &snapshot)
 {
-    available_ = snapshot.installedPackages.contains(QStringLiteral("fwupd"));
+    available_ = snapshot.isValid() && snapshot.installedPackages.contains(QStringLiteral("fwupd"));
+    if (!available_ && !busy_) {
+        hardware_ = {};
+        updates_ = {};
+        render();
+    }
+    auto *item = devices_->currentItem();
+    update_->setEnabled(available_ && !busy_ && item && item->data(0, Qt::UserRole + 1).toBool());
     setup_->setVisible(!available_);
     setup_->setEnabled(snapshot.isValid());
     check_->setEnabled(available_ && !busy_);
