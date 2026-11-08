@@ -28,11 +28,21 @@ QString attribute(udev_device *dev, const char *name)
     return text(udev_device_get_sysattr_value(dev, name));
 }
 
-udev_device *parent(udev_device *dev)
+udev_device *physicalDevice(udev_device *dev)
 {
+    const QString subsystem = text(udev_device_get_subsystem(dev));
+    const QString devtype = text(udev_device_get_devtype(dev));
+    if (subsystem == QLatin1String("pci")
+        || (subsystem == QLatin1String("usb") && devtype == QLatin1String("usb_device")))
+        return dev;
     if (auto *p = udev_device_get_parent_with_subsystem_devtype(dev, "usb", "usb_device"))
         return p;
     return udev_device_get_parent_with_subsystem_devtype(dev, "pci", nullptr);
+}
+
+udev_device *parent(udev_device *dev)
+{
+    return physicalDevice(dev);
 }
 
 QString preferred(const QStringList &values)
@@ -65,14 +75,14 @@ QString boundDriver(udev_device *dev)
 
 QString physicalKey(udev_device *dev)
 {
-    if (auto *usb = udev_device_get_parent_with_subsystem_devtype(dev, "usb", "usb_device")) {
-        return QStringLiteral("usb:") + text(udev_device_get_sysname(usb));
-    }
-    if (auto *pci = udev_device_get_parent_with_subsystem_devtype(dev, "pci", nullptr)) {
-        if (text(udev_device_get_subsystem(dev)) == QLatin1String("pci")) pci = dev;
-        return QStringLiteral("pci:") + text(udev_device_get_sysname(pci));
-    }
-    return text(udev_device_get_syspath(dev));
+    auto *physical = physicalDevice(dev);
+    if (!physical) return text(udev_device_get_syspath(dev));
+    const QString subsystem = text(udev_device_get_subsystem(physical));
+    if (subsystem == QLatin1String("usb"))
+        return QStringLiteral("usb:") + text(udev_device_get_sysname(physical));
+    if (subsystem == QLatin1String("pci"))
+        return QStringLiteral("pci:") + text(udev_device_get_sysname(physical));
+    return text(udev_device_get_syspath(physical));
 }
 
 HardwareDevice makeDevice(udev_device *dev, DeviceCategory category,
