@@ -33,14 +33,18 @@ bool execute(const QString &program, const QStringList &arguments)
     process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
     if (!process.waitForStarted(15000)) return false;
-    const bool finished = process.waitForFinished(-1);
-    const QByteArray output = process.readAll();
-    if (!output.isEmpty()) {
-        std::fwrite(output.constData(), 1, size_t(output.size()), stdout);
+    auto consume = [](const QByteArray &chunk) {
+        if (chunk.isEmpty()) return;
+        std::fwrite(chunk.constData(), 1, size_t(chunk.size()), stdout);
         std::fflush(stdout);
-        writeLog(output);
+        writeLog(chunk);
+    };
+    while (process.state() != QProcess::NotRunning) {
+        if (process.waitForReadyRead(100)) consume(process.readAll());
+        else if (!process.waitForFinished(100)) continue;
     }
-    return finished && process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
+    consume(process.readAll());
+    return process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
 }
 
 }
