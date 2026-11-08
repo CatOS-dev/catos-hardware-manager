@@ -2,7 +2,19 @@
 
 #include <cstdio>
 #include <QFileInfo>
+#include <QProcess>
 #include <QtGlobal>
+
+namespace {
+bool snapperConfigured()
+{
+    if (!QFileInfo::exists(QStringLiteral("/usr/bin/snapper"))) return false;
+    QProcess process;
+    process.start(QStringLiteral("/usr/bin/snapper"), {QStringLiteral("list-configs")});
+    return process.waitForFinished(3000) && process.exitStatus() == QProcess::NormalExit
+        && process.exitCode() == 0 && !process.readAllStandardOutput().trimmed().isEmpty();
+}
+}
 
 namespace HardwareTransaction {
 bool apply(const HardwareSnapshot &before, const QStringList &remove,
@@ -54,7 +66,7 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
                       QStringLiteral("/usr/bin/pacman"), arguments});
     }
     if (changesDrivers && !qEnvironmentVariableIsSet("CATOS_DISABLE_SNAPSHOTS")
-        && QFileInfo::exists(QStringLiteral("/usr/bin/snapper"))) {
+        && snapperConfigured()) {
         const QString description = QStringLiteral("catos-hardware: ")
             + (remove + install).join(QStringLiteral(", "));
         steps.append({QStringLiteral("snapshot"), description, QStringLiteral("/usr/bin/snapper"),
