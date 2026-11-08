@@ -46,6 +46,36 @@ udev_device *parent(udev_device *dev)
     return physicalDevice(dev);
 }
 
+QStringList modulesForModalias(const QString &modalias)
+{
+    static QHash<QString, QStringList> cache;
+    if (cache.contains(modalias)) return cache.value(modalias);
+    QStringList result;
+    QProcess uname;
+    uname.start(QStringLiteral("uname"), {QStringLiteral("-r")});
+    if (uname.waitForFinished(1000) && uname.exitCode() == 0) {
+        QFile aliases(QStringLiteral("/lib/modules/")
+                      + QString::fromUtf8(uname.readAllStandardOutput()).trimmed()
+                      + QStringLiteral("/modules.alias"));
+        if (aliases.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            const auto lines = QString::fromUtf8(aliases.readAll()).split(QLatin1Char('\n'));
+            for (const auto &line : lines) {
+                if (!line.startsWith(QLatin1String("alias "))) continue;
+                const auto fields = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+                if (fields.size() != 3) continue;
+                QString pattern = QRegularExpression::escape(fields[1]);
+                pattern.replace(QStringLiteral("\\*"), QStringLiteral(".*"));
+                pattern.replace(QStringLiteral("\\?"), QStringLiteral("."));
+                if (QRegularExpression(QStringLiteral("^") + pattern + QStringLiteral("$"),
+                                        QRegularExpression::CaseInsensitiveOption).match(modalias).hasMatch()
+                    && !result.contains(fields[2])) result.append(fields[2]);
+            }
+        }
+    }
+    cache.insert(modalias, result);
+    return result;
+}
+
 QString preferred(const QStringList &values)
 {
     for (const auto &value : values) {
@@ -94,6 +124,7 @@ HardwareDevice makeDevice(udev_device *dev, DeviceCategory category,
     result.modalias = preferred({property(dev, "MODALIAS"), attribute(dev, "modalias"),
                                 property(physical, "MODALIAS"), attribute(physical, "modalias")});
     result.driver = boundDriver(dev);
+    result.modules = modulesForModalias(result.modalias);
     result.name = preferred({property(dev, "ID_MODEL_FROM_DATABASE"), property(physical, "ID_MODEL_FROM_DATABASE"),
                              property(dev, "ID_MODEL"), property(physical, "ID_MODEL"),
                              attribute(physical, "product"), attribute(physical, "device"),

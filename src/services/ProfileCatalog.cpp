@@ -83,6 +83,7 @@ HardwareMatchRule readMatch(const YAML::Node &node)
         else if (key == QLatin1String("vendor")) rule.vendor = value;
         else if (key == QLatin1String("device")) rule.device = value;
         else if (key == QLatin1String("driver")) rule.driver = value;
+        else if (key == QLatin1String("module")) rule.module = value;
         else if (key == QLatin1String("modalias_prefix")) rule.modaliasPrefix = value;
         else if (key == QLatin1String("dmi_vendor")) rule.dmiVendor = value;
         else if (key == QLatin1String("acpi_hid")) rule.acpiHid = value;
@@ -98,6 +99,7 @@ bool matchesRule(const HardwareMatchRule &rule, const HardwareDevice &device)
     if (!rule.vendor.isEmpty() && !sameId(rule.vendor, device.vendorId)) return false;
     if (!rule.device.isEmpty() && !sameId(rule.device, device.productId)) return false;
     if (!rule.driver.isEmpty() && rule.driver != device.driver) return false;
+    if (!rule.module.isEmpty() && !device.modules.contains(rule.module)) return false;
     if (!rule.modaliasPrefix.isEmpty()
         && !device.modalias.startsWith(rule.modaliasPrefix, Qt::CaseInsensitive)) return false;
     if (!rule.dmiVendor.isEmpty() && rule.dmiVendor != device.dmiVendor) return false;

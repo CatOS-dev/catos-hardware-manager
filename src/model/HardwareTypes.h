@@ -19,6 +19,7 @@ struct HardwareMatchRule {
     QString vendor;
     QString device;
     QString driver;
+    QString module;
     QString modaliasPrefix;
     QString dmiVendor;
     QString acpiHid;
@@ -33,6 +34,7 @@ struct HardwareDevice {
     QString address;
     QString modalias;
     QString driver;
+    QStringList modules;
     QString vendorId;
     QString productId;
     QString dmiVendor;
