@@ -102,6 +102,22 @@ private slots:
         selection.refresh(state, false);
         QVERIFY(!selection.select(QStringLiteral("support:bluetooth"), true, state));
     }
+    void moduleRulesMatchWithoutBoundDriver()
+    {
+        QString error;
+        const auto catalog = ProfileCatalog::load(QStringLiteral(PROFILE_DIRECTORY), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        const auto it = std::find_if(catalog.cbegin(), catalog.cend(), [](const HardwareProfile &profile) {
+            return profile.id == QLatin1String("support:audio-sof");
+        });
+        QVERIFY(it != catalog.cend());
+        HardwareDevice device;
+        device.bus = QStringLiteral("pci");
+        device.modalias = QStringLiteral("acpi:INT34C8:");
+        device.modules = {QStringLiteral("snd_sof_pci_intel_tgl")};
+        QVERIFY(ProfileCatalog::matches(*it, device));
+    }
+
     void scannerBootstrapDoesNotNeedScanimageOrDevice()
     {
         QString error;
