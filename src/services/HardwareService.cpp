@@ -79,16 +79,18 @@ void readService(const QString &name, HardwareSnapshot &snapshot)
     }
 }
 
-QSet<QString> unsatisfiedPackages(const QStringList &packages)
+bool unsatisfiedPackages(const QStringList &packages, QSet<QString> &result)
 {
-    QSet<QString> result;
-    if (packages.isEmpty()) return result;
+    result.clear();
+    if (packages.isEmpty()) return true;
     QProcess process;
     process.start(QStringLiteral("/usr/bin/pacman"), QStringList{QStringLiteral("-T"), QStringLiteral("--")} + packages);
-    if (!process.waitForStarted(6000) || !process.waitForFinished(20000)) return result;
+    if (!process.waitForStarted(6000) || !process.waitForFinished(20000)
+        || process.exitStatus() != QProcess::NormalExit)
+        return false;
     for (const auto &name : QString::fromUtf8(process.readAllStandardOutput()).split(QLatin1Char('\n'), Qt::SkipEmptyParts))
         result.insert(name.trimmed());
-    return result;
+    return true;
 }
 
 void addProfileToDevice(HardwareDevice &device, const QString &profileId)
@@ -254,8 +256,10 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram, ReadOptions o
     for (const auto &profile : support)
         for (const auto &package : profile.packages)
             if (!packageNames.contains(package)) packageNames.append(package);
-    snapshot.unsatisfiedPackages = unsatisfiedPackages(packageNames);
-    snapshot.packageSatisfiabilityKnown = true;
+    snapshot.packageSatisfiabilityKnown = unsatisfiedPackages(packageNames, snapshot.unsatisfiedPackages);
+    if (!snapshot.packageSatisfiabilityKnown)
+        snapshot.warnings.append(QCoreApplication::translate("HardwareService",
+            "Cannot query package dependency satisfaction; using installed package names."));
     QSet<QString> serviceNames;
     for (const auto &profile : support)
         for (const auto &service : profile.services) serviceNames.insert(service);
