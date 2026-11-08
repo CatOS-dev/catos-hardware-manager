@@ -333,22 +333,8 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
     }
     // SANE can identify USB/network scanners for which no standard USB
     // interface class exists. Do not misclassify all imaging-class devices.
-    if (!scanners) {
-        QVector<HardwareDevice> result;
-        QFile vendor(QStringLiteral("/sys/class/dmi/id/sys_vendor"));
-        QString vendorName;
-        if (vendor.open(QIODevice::ReadOnly)) vendorName = QString::fromUtf8(vendor.readAll()).trimmed();
-        for (auto device : all) {
-            device.dmiVendor = vendorName;
-            result.append(std::move(device));
-        }
-        std::sort(result.begin(), result.end(), [](const auto &a, const auto &b) {
-            if (a.category != b.category) return a.category < b.category;
-            return a.name.localeAwareCompare(b.name) < 0;
-        });
-        return result;
-    }
-    QProcess scan;
+    if (scanners) {
+      QProcess scan;
     auto environment = QProcessEnvironment::systemEnvironment();
     environment.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));
     scan.setProcessEnvironment(environment);
@@ -359,7 +345,7 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
         scan.kill();
         scan.waitForFinished();
     }
-    if (scannerFinished && scan.exitStatus() == QProcess::NormalExit && scan.exitCode() == 0) {
+      if (scannerFinished && scan.exitStatus() == QProcess::NormalExit && scan.exitCode() == 0) {
         const QString output = QString::fromUtf8(scan.readAllStandardOutput());
         const QRegularExpression pattern(QStringLiteral("^device ['`][^']+' is a (.+)$"),
                                          QRegularExpression::MultilineOption);
@@ -377,6 +363,7 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
             scanner.capabilities.append(QStringLiteral("scanner"));
             add(all, std::move(scanner));
         }
+      }
     }
     int graphicsCount = 0;
     for (auto it = all.cbegin(); it != all.cend(); ++it)
