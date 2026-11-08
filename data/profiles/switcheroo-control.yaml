@@ -1,0 +1,12 @@
+id: switcheroo-control
+name: GPU switching support
+name_zh: 显卡切换支持
+description: switcheroo-control for hybrid graphics laptops
+description_zh: 混合显卡笔记本的 switcheroo-control
+category: graphics
+recommended: true
+packages: [switcheroo-control]
+services: [switcheroo-control.service]
+match:
+  any:
+    - capability: dual-gpu

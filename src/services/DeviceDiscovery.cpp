@@ -371,6 +371,20 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners)
             add(all, std::move(scanner));
         }
     }
+    int graphicsCount = 0;
+    for (auto it = all.cbegin(); it != all.cend(); ++it)
+        if (it->category == DeviceCategory::Graphics) ++graphicsCount;
+    if (graphicsCount > 1) {
+        HardwareDevice device;
+        device.id = QStringLiteral("system:graphics");
+        device.category = DeviceCategory::Graphics;
+        device.bus = QStringLiteral("system");
+        device.address = QStringLiteral("graphics");
+        device.name = QStringLiteral("Multiple graphics adapters");
+        device.capabilities.append(QStringLiteral("dual-gpu"));
+        add(all, std::move(device));
+    }
+
     QFile cpuInfo(QStringLiteral("/proc/cpuinfo"));
     if (cpuInfo.open(QIODevice::ReadOnly | QIODevice::Text)) {
         const QString contents = QString::fromUtf8(cpuInfo.readAll());
