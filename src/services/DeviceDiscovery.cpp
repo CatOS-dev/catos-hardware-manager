@@ -34,8 +34,13 @@ udev_device *physicalDevice(udev_device *dev)
     const QString subsystem = text(udev_device_get_subsystem(dev));
     const QString devtype = text(udev_device_get_devtype(dev));
     if (subsystem == QLatin1String("pci")
-        || (subsystem == QLatin1String("usb") && devtype == QLatin1String("usb_device")))
+        || (subsystem == QLatin1String("usb") && devtype == QLatin1String("usb_device"))
+        || subsystem == QLatin1String("hid") || subsystem == QLatin1String("i2c"))
         return dev;
+    if (auto *p = udev_device_get_parent_with_subsystem_devtype(dev, "hid", nullptr))
+        return p;
+    if (auto *p = udev_device_get_parent_with_subsystem_devtype(dev, "i2c", nullptr))
+        return p;
     if (auto *p = udev_device_get_parent_with_subsystem_devtype(dev, "usb", "usb_device"))
         return p;
     return udev_device_get_parent_with_subsystem_devtype(dev, "pci", nullptr);
@@ -137,6 +142,16 @@ HardwareDevice makeDevice(udev_device *dev, DeviceCategory category,
                                  attribute(physical, "vendor")});
     result.productId = preferred({property(physical, "ID_MODEL_ID"), attribute(physical, "idProduct"),
                                   attribute(physical, "device")});
+    if (text(udev_device_get_subsystem(physical)) == QLatin1String("hid")) {
+        const QString hidId = property(physical, "HID_ID");
+        const auto parts = hidId.split(QLatin1Char(':'));
+        if (parts.size() >= 3) {
+            result.vendorId = parts.at(parts.size() - 2);
+            result.productId = parts.at(parts.size() - 1);
+        }
+        result.name = preferred({property(physical, "HID_NAME"), result.name});
+        result.bus = QStringLiteral("hid");
+    }
     result.acpiHid = attribute(physical, "hid");
     if (result.acpiHid.isEmpty()
         && result.bus == QLatin1String("acpi"))
