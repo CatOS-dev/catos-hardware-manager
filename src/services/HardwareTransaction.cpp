@@ -32,6 +32,7 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
     };
     const bool changesDrivers = !remove.isEmpty() || !install.isEmpty();
     if (!before.isValid() || (changesDrivers && !before.chwdAvailable)) {
+        emitLine(QStringLiteral("ERROR|state|initial|invalid"));
         emitError(QStringLiteral("Cannot query the initial hardware state. Refresh before applying changes."));
         return false;
     }
@@ -121,6 +122,7 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
                     emitLine(QStringLiteral("RECOVERY|%1|%2").arg(name, restored ? QStringLiteral("completed") : QStringLiteral("needs-attention")));
                 }
             }
+            emitLine(QStringLiteral("ERROR|step|%1|%2|failed").arg(step.action, step.target));
             emitError(QStringLiteral("Operation failed: %1 %2. Review the step results before retrying.")
                           .arg(step.action, step.target));
             return false;
@@ -129,6 +131,7 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
     }
     const auto after = read();
     if (!after.isValid() || (changesDrivers && !after.chwdAvailable)) {
+        emitLine(QStringLiteral("ERROR|state|final|invalid"));
         emitError(QStringLiteral("Cannot verify the final hardware state. Refresh before retrying."));
         return false;
     }
