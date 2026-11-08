@@ -5,8 +5,12 @@
 namespace HardwareTransaction {
 bool apply(const HardwareSnapshot &before, const QStringList &remove,
            const QStringList &install, const QStringList &support,
-           const Runner &run, const Reader &read, const LineSink &log)
+           const Runner &run, const Reader &read, const LineSink &log, const ErrorSink &error)
 {
+    const auto emitError = [&error](const QString &message) {
+        std::fprintf(stderr, "%s\n", message.toUtf8().constData());
+        if (error) error(message);
+    };
     const auto emitLine = [&log](const QString &line) {
         std::printf("%s\n", line.toUtf8().constData());
         std::fflush(stdout);
@@ -14,7 +18,7 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
     };
     const bool changesDrivers = !remove.isEmpty() || !install.isEmpty();
     if (!before.isValid() || (changesDrivers && !before.chwdAvailable)) {
-        std::fprintf(stderr, "Cannot query the initial hardware state. Refresh before applying changes.\n");
+        emitError(QStringLiteral("Cannot query the initial hardware state. Refresh before applying changes."));
         return false;
     }
     struct Step { QString action; QString target; QString program; QStringList arguments; };
@@ -96,15 +100,15 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
                     emitLine(QStringLiteral("RECOVERY|%1|%2").arg(name, restored ? QStringLiteral("completed") : QStringLiteral("needs-attention")));
                 }
             }
-            std::fprintf(stderr, "Operation failed: %s %s. Review the step results before retrying.\n",
-                         step.action.toUtf8().constData(), step.target.toUtf8().constData());
+            emitError(QStringLiteral("Operation failed: %1 %2. Review the step results before retrying.")
+                          .arg(step.action, step.target));
             return false;
         }
         if (step.action == QLatin1String("remove")) removed.append(step.target);
     }
     const auto after = read();
     if (!after.isValid() || (changesDrivers && !after.chwdAvailable)) {
-        std::fprintf(stderr, "Cannot verify the final hardware state. Refresh before retrying.\n");
+        emitError(QStringLiteral("Cannot verify the final hardware state. Refresh before retrying."));
         return false;
     }
     for (const auto &name : remove) {

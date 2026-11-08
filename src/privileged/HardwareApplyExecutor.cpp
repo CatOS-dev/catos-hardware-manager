@@ -163,7 +163,8 @@ int main(int argc, char **argv)
 
     const bool ok = HardwareTransaction::apply(before, request.remove, request.install, request.support,
         execute, [] { return HardwareService::read(QStringLiteral("/usr/bin/chwd"), ReadOptions{false}); },
-        [](const QString &line) { writeLog((line + QLatin1Char('\n')).toUtf8()); });
+        [](const QString &line) { writeLog((line + QLatin1Char('\n')).toUtf8()); },
+        [](const QString &line) { writeLog((QStringLiteral("ERROR|") + line + QLatin1Char('\n')).toUtf8()); });
     writeLog((ok ? QByteArray("DONE\n") : QByteArray("FAILED\n")));
     return ok ? 0 : 4;
 }
