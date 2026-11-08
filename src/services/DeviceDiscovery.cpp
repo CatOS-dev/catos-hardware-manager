@@ -181,7 +181,8 @@ bool unsupportedFingerprint(const QString &vendor, const QString &product)
         QFile file(QStringLiteral("/usr/share/catos-hardware-manager/fingerprint-unsupported.txt"));
         bool opened = file.open(QIODevice::ReadOnly);
         if (!opened) {
-            file.setFileName(QStringLiteral("../data/fingerprint-unsupported.txt"));
+            file.setFileName(QCoreApplication::applicationDirPath()
+                             + QStringLiteral("/../data/fingerprint-unsupported.txt"));
             opened = file.open(QIODevice::ReadOnly);
         }
         if (opened)
