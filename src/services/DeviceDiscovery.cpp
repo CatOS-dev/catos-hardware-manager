@@ -222,7 +222,8 @@ QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem)
                 devices.append(makeDevice(device.get(), DeviceCategory::Graphics, QStringLiteral("graphics")));
             else if (classId.startsWith(QLatin1String("0x02")))
                 devices.append(makeDevice(device.get(), DeviceCategory::Network, QStringLiteral("network")));
-            else if (classId.startsWith(QLatin1String("0x04")))
+            else if (classId.startsWith(QLatin1String("0x0401"))
+                     || classId.startsWith(QLatin1String("0x0403")))
                 devices.append(makeDevice(device.get(), DeviceCategory::Audio, QStringLiteral("audio")));
         } else if (sub == QLatin1String("sound")) {
             if (QRegularExpression(QStringLiteral("^card[0-9]+$")).match(name).hasMatch())
@@ -276,6 +277,8 @@ QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem)
             const QString acpiId = attribute(device.get(), "hid");
             if (!acpiId.isEmpty())
                 devices.append(makeDevice(device.get(), DeviceCategory::Other, QStringLiteral("acpi")));
+        } else if (sub == QLatin1String("wwan")) {
+            devices.append(makeDevice(device.get(), DeviceCategory::MobileBroadband, QStringLiteral("wwan")));
         } else if (sub == QLatin1String("net")) {
             // PCI network controllers have already been collected above.
             // Only include actual USB network interfaces, not software interfaces.
@@ -299,7 +302,7 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners)
     if (!context) return {};
     QHash<QString, HardwareDevice> all;
     for (const char *subsystem : {"pci", "sound", "bluetooth", "video4linux", "input",
-                                  "thunderbolt", "usb", "net", "acpi"}) {
+                                  "thunderbolt", "usb", "net", "wwan", "acpi"}) {
         for (auto device : enumerateSubsystem(context.get(), subsystem))
             add(all, std::move(device));
     }
