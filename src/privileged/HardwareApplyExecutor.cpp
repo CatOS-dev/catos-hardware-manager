@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QFile>
 #include <QDateTime>
+#include <QFileInfo>
 
 #include <cstdio>
 #include <csignal>
@@ -144,6 +145,11 @@ int main(int argc, char **argv)
     }
     Request request;
     if (!readRequest(application.arguments(), request)) return 2;
+    if (QFileInfo::exists(QStringLiteral("/var/lib/pacman/db.lck"))) {
+        std::fprintf(stderr, "ERROR|package-manager|locked\n");
+        writeLog(QByteArray("ERROR|package-manager|locked\n"));
+        return 4;
+    }
 
     const HardwareSnapshot before = HardwareService::read(QStringLiteral("/usr/bin/chwd"), ReadOptions{false});
     if (!before.isValid()) {
