@@ -38,8 +38,9 @@ bool readRequest(const QStringList &arguments, Request &request)
         const QString operation = arguments[i];
         const QString name = arguments[i + 1];
         if (operation == QLatin1String("--expect")) {
-            if (!validName(name)) return false;
+            if (!validName(name) || used.contains(QStringLiteral("expect:") + name)) return false;
             request.expectedChwd.insert(name);
+            used.insert(QStringLiteral("expect:") + name);
             continue;
         }
         if (operation == QLatin1String("--support-install")) {
