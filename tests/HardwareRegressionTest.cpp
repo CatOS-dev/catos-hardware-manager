@@ -142,6 +142,27 @@ private slots:
         device.modules = {QStringLiteral("snd_sof_pci_intel_tgl")};
         QVERIFY(ProfileCatalog::matches(*it, device));
     }
+    void supportConflictsAreParsedAndRejected()
+    {
+        QString error;
+        const auto catalog = ProfileCatalog::load(QStringLiteral(PROFILE_DIRECTORY), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        const auto it = std::find_if(catalog.cbegin(), catalog.cend(), [](const HardwareProfile &profile) {
+            return profile.id == QLatin1String("support:power-profiles");
+        });
+        QVERIFY(it != catalog.cend());
+        QCOMPARE(it->conflicts, QStringList({QStringLiteral("tlp"), QStringLiteral("tuned"),
+                                             QStringLiteral("tuned-ppd"), QStringLiteral("auto-cpufreq")}));
+        HardwareSnapshot state;
+        state.installedPackages.insert(QStringLiteral("tlp"));
+        HardwareService::attachSupportProfiles(state, catalog);
+        const auto *profile = state.profile(QStringLiteral("support:power-profiles"));
+        QVERIFY(profile);
+        QVERIFY(!profile->conflictingPackages.isEmpty());
+        ProfileSelection selection;
+        selection.refresh(state, false);
+        QVERIFY(!selection.select(profile->id, true, state));
+    }
 
     void scannerBootstrapDoesNotNeedScanimageOrDevice()
     {

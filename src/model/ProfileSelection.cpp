@@ -54,6 +54,17 @@ bool ProfileSelection::select(const QString &id, bool enabled, const HardwareSna
     if (profile->systemManaged && profile->ready && !enabled) return false;
     if (enabled && !profile->conflictingPackages.isEmpty()) return false;
     if (enabled) {
+        if (profile->source == ProfileSource::Support) {
+            for (const auto &other : state.profiles) {
+                if (other.id == id || !selected_.contains(other.id)
+                    || other.source != ProfileSource::Support)
+                    continue;
+                for (const auto &package : profile->conflicts)
+                    if (other.packages.contains(package)) return false;
+                for (const auto &package : other.conflicts)
+                    if (profile->packages.contains(package)) return false;
+            }
+        }
         if (profile->source == ProfileSource::Chwd && !profile->conflictGroup.isEmpty()) {
             for (const auto &other : state.profiles) {
                 if (other.id != id && other.source == ProfileSource::Chwd
@@ -88,7 +99,7 @@ void ProfileSelection::selectRecommended(const HardwareSnapshot &state)
     }
     for (const auto &profile : state.profiles) {
         if (profile.source == ProfileSource::Support && profile.recommended
-            && profile.applicable && !profile.ready)
+            && profile.applicable && !profile.ready && profile.conflictingPackages.isEmpty())
             select(profile.id, true, state);
     }
 }

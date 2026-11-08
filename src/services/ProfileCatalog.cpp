@@ -165,10 +165,12 @@ QVector<HardwareProfile> ProfileCatalog::load(const QString &directory, QString 
             profile.systemManaged = root["systemManaged"] && root["systemManaged"].as<bool>();
             profile.packages = list(root["packages"]);
             profile.services = list(root["services"]);
+            profile.conflicts = list(root["conflicts"]);
             if (ids.contains(profile.id) || profile.name.isEmpty()
                 || profile.category == DeviceCategory::Other
                 || (profile.packages.isEmpty() && profile.services.isEmpty())
                 || !std::all_of(profile.packages.begin(), profile.packages.end(), validPackage)
+                || !std::all_of(profile.conflicts.begin(), profile.conflicts.end(), validPackage)
                 || !std::all_of(profile.services.begin(), profile.services.end(), validService))
                 throw std::runtime_error("Invalid profile fields");
             const YAML::Node criteria = root["match"];
