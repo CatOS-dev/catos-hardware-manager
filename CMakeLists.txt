@@ -64,6 +64,7 @@ target_link_libraries(catos-hardware-apply PRIVATE catos-hardware-core)
 install(TARGETS catos-hardware-manager RUNTIME DESTINATION bin)
 install(TARGETS catos-hardware-apply RUNTIME DESTINATION lib/catos)
 install(FILES data/catos-hardware-manager.desktop DESTINATION share/applications)
+install(FILES data/org.catos.hardware-manager.policy DESTINATION share/polkit-1/actions)
 install(FILES ${QM_FILES} DESTINATION share/catos-hardware-manager/translations)
 install(DIRECTORY data/profiles/ DESTINATION share/catos-hardware-manager/profiles
     FILES_MATCHING PATTERN "*.yaml"
