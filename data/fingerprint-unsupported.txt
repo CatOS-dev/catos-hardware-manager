@@ -1,4 +1,5 @@
-# Generated from libfprint autosuspend.hwdb; unsupported USB IDs
+# Source: libfprint data/autosuspend.hwdb, section: Known unsupported devices
+# Upstream: https://gitlab.freedesktop.org/libfprint/libfprint/-/blob/master/data/autosuspend.hwdb
 006b:00da
 0413:2766
 045e:0815
