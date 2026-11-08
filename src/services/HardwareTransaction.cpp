@@ -5,8 +5,13 @@
 namespace HardwareTransaction {
 bool apply(const HardwareSnapshot &before, const QStringList &remove,
            const QStringList &install, const QStringList &support,
-           const Runner &run, const Reader &read)
+           const Runner &run, const Reader &read, const LineSink &log)
 {
+    const auto emitLine = [&log](const QString &line) {
+        std::printf("%s\n", line.toUtf8().constData());
+        std::fflush(stdout);
+        if (log) log(line);
+    };
     const bool changesDrivers = !remove.isEmpty() || !install.isEmpty();
     if (!before.isValid() || (changesDrivers && !before.chwdAvailable)) {
         std::fprintf(stderr, "Cannot query the initial hardware state. Refresh before applying changes.\n");
@@ -64,18 +69,15 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
     }
     // Emit the complete plan before making changes, so skipped operations stay visible.
     for (int i = 0; i < steps.size(); ++i)
-        std::printf("PLAN|%d|%d|%s|%s\n", i + 1, int(steps.size()),
-                    steps[i].action.toUtf8().constData(), steps[i].target.toUtf8().constData());
-    std::fflush(stdout);
+        emitLine(QStringLiteral("PLAN|%1|%2|%3|%4").arg(i + 1).arg(steps.size(), 0)
+                     .arg(steps[i].action, steps[i].target));
     QStringList removed;
     for (int i = 0; i < steps.size(); ++i) {
         const auto &step = steps[i];
-        std::printf("STEP|%d|%d|%s|%s\n", i + 1, int(steps.size()),
-                    step.action.toUtf8().constData(), step.target.toUtf8().constData());
-        std::fflush(stdout);
+        emitLine(QStringLiteral("STEP|%1|%2|%3|%4").arg(i + 1).arg(steps.size(), 0)
+                     .arg(step.action, step.target));
         const bool ok = run(step.program, step.arguments);
-        std::printf("RESULT|%d|%s\n", i + 1, ok ? "completed" : "failed");
-        std::fflush(stdout);
+        emitLine(QStringLiteral("RESULT|%1|%2").arg(i + 1).arg(ok ? QStringLiteral("completed") : QStringLiteral("failed")));
         if (!ok) {
             // Restore only when driver switching failed. A later support failure
             // must not undo an otherwise successful driver switch.
@@ -91,9 +93,8 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
                     const auto recovered = read();
                     const auto *profile = recovered.profile(QStringLiteral("chwd:") + name);
                     const bool restored = ran && recovered.isValid() && recovered.chwdAvailable && profile && profile->installed;
-                    std::printf("RECOVERY|%s|%s\n", name.toUtf8().constData(), restored ? "completed" : "needs-attention");
+                    emitLine(QStringLiteral("RECOVERY|%1|%2").arg(name, restored ? QStringLiteral("completed") : QStringLiteral("needs-attention")));
                 }
-                std::fflush(stdout);
             }
             std::fprintf(stderr, "Operation failed: %s %s. Review the step results before retrying.\n",
                          step.action.toUtf8().constData(), step.target.toUtf8().constData());
@@ -121,7 +122,7 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
             return false;
         }
     }
-    std::puts("DONE");
+    emitLine(QStringLiteral("DONE"));
     return true;
 }
 }

@@ -7,8 +7,12 @@
 #include <QRegularExpression>
 #include <QSet>
 #include <QStringList>
+#include <QDir>
+#include <QFile>
+#include <QDateTime>
 
 #include <cstdio>
+#include <csignal>
 #include <unistd.h>
 
 namespace {
@@ -87,25 +91,47 @@ bool validate(const Request &request, const HardwareSnapshot &snapshot)
     return true;
 }
 
+QFile *transactionLog = nullptr;
+
+void writeLog(const QByteArray &data)
+{
+    if (!transactionLog || !transactionLog->isOpen()) return;
+    transactionLog->write(data);
+    transactionLog->flush();
+}
+
 bool execute(const QString &program, const QStringList &arguments)
 {
     QProcess process;
-    process.setProcessChannelMode(QProcess::ForwardedChannels);
+    process.setProcessChannelMode(QProcess::MergedChannels);
     process.start(program, arguments);
-    if (!process.waitForStarted(15000) || !process.waitForFinished(-1)
-        || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
-        return false;
-    return true;
+    if (!process.waitForStarted(15000)) return false;
+    const bool finished = process.waitForFinished(-1);
+    const QByteArray output = process.readAll();
+    if (!output.isEmpty()) {
+        std::fwrite(output.constData(), 1, size_t(output.size()), stdout);
+        std::fflush(stdout);
+        writeLog(output);
+    }
+    return finished && process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
 }
 
 }
 
 int main(int argc, char **argv)
 {
+    std::signal(SIGPIPE, SIG_IGN);
+    std::signal(SIGHUP, SIG_IGN);
     QCoreApplication application(argc, argv);
     if (geteuid() != 0) {
         std::fprintf(stderr, "Administrator authorization required.\n");
         return 2;
+    }
+    QFile logFile(QStringLiteral("/var/log/catos-hardware-manager/last-transaction.log"));
+    QDir().mkpath(QFileInfo(logFile.fileName()).absolutePath());
+    if (logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        transactionLog = &logFile;
+        writeLog((QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + QStringLiteral(" START\n")).toUtf8());
     }
     Request request;
     if (!readRequest(application.arguments(), request)) return 2;
@@ -120,6 +146,9 @@ int main(int argc, char **argv)
         return 3;
     }
 
-    return HardwareTransaction::apply(before, request.remove, request.install, request.support,
-        execute, [] { return HardwareService::read(QStringLiteral("/usr/bin/chwd"), ReadOptions{false}); }) ? 0 : 4;
+    const bool ok = HardwareTransaction::apply(before, request.remove, request.install, request.support,
+        execute, [] { return HardwareService::read(QStringLiteral("/usr/bin/chwd"), ReadOptions{false}); },
+        [](const QString &line) { writeLog((line + QLatin1Char('\n')).toUtf8()); });
+    writeLog((ok ? QByteArray("DONE\n") : QByteArray("FAILED\n")));
+    return ok ? 0 : 4;
 }
