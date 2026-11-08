@@ -263,8 +263,10 @@ QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem)
             if (devtype == QLatin1String("usb_device")) {
                 if (attribute(device.get(), "bDeviceClass").compare(QLatin1String("09"), Qt::CaseInsensitive) != 0) {
                     auto generic = makeDevice(device.get(), DeviceCategory::Other, QStringLiteral("usb-device"));
-                    if (unsupportedFingerprint(generic.vendorId, generic.productId))
+                    if (unsupportedFingerprint(generic.vendorId, generic.productId)) {
+                        generic.category = DeviceCategory::Fingerprint;
                         generic.capabilities.append(QStringLiteral("fingerprint-unsupported"));
+                    }
                     devices.append(std::move(generic));
                 }
                 continue;
