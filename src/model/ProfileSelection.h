@@ -6,6 +6,7 @@ class ProfileSelection {
 public:
     void refresh(const HardwareSnapshot &state, bool retainPending);
     bool select(const QString &id, bool enabled, const HardwareSnapshot &state);
+    void selectRecommended(const HardwareSnapshot &state);
     void reset(const HardwareSnapshot &state);
     bool selected(const QString &id) const { return selected_.contains(id); }
     QStringList installingChwd(const HardwareSnapshot &state) const;

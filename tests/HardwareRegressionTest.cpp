@@ -51,6 +51,22 @@ private:
         return state;
     }
 private slots:
+    void recommendedDriverDoesNotStageInstalledConflictRemoval()
+    {
+        auto state = drivers();
+        state.profiles[0].conflictGroup = QStringLiteral("gpu");
+        state.profiles[1].conflictGroup = QStringLiteral("gpu");
+        HardwareDevice device;
+        device.id = QStringLiteral("pci:0000:01:00.0");
+        device.recommendedProfile = QStringLiteral("chwd:new");
+        state.devices.append(device);
+        ProfileSelection selection;
+        selection.refresh(state, false);
+        selection.selectRecommended(state);
+        QVERIFY(selection.selected(QStringLiteral("chwd:old")));
+        QVERIFY(!selection.selected(QStringLiteral("chwd:new")));
+        QVERIFY(selection.removingChwd(state).isEmpty());
+    }
     void stoppedEnabledServiceCanBeRepaired()
     {
         auto state = stoppedBluetooth();

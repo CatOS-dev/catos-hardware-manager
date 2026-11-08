@@ -67,6 +67,31 @@ bool ProfileSelection::select(const QString &id, bool enabled, const HardwareSna
     return true;
 }
 
+void ProfileSelection::selectRecommended(const HardwareSnapshot &state)
+{
+    for (const auto &device : state.devices) {
+        const auto *profile = state.profile(device.recommendedProfile);
+        if (!profile || profile->source != ProfileSource::Chwd) continue;
+        if (!profile->conflictGroup.isEmpty()) {
+            bool installedInGroup = false;
+            for (const auto &other : state.profiles) {
+                if (other.source == ProfileSource::Chwd && other.installed
+                    && other.conflictGroup == profile->conflictGroup) {
+                    installedInGroup = true;
+                    break;
+                }
+            }
+            if (installedInGroup) continue;
+        }
+        select(profile->id, true, state);
+    }
+    for (const auto &profile : state.profiles) {
+        if (profile.source == ProfileSource::Support && profile.recommended
+            && profile.applicable && !profile.ready)
+            select(profile.id, true, state);
+    }
+}
+
 QStringList ProfileSelection::installingChwd(const HardwareSnapshot &state) const
 {
     QStringList names;
