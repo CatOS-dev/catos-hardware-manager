@@ -126,6 +126,15 @@ private slots:
         request.install = {QStringLiteral("new"), QStringLiteral("old")};
         QVERIFY(!HardwareApplyRequestParser::validate(request, state));
     }
+    void executorRequestRejectsStaleExpectationAndInvalidProfile()
+    {
+        auto state = drivers();
+        HardwareApplyRequest request;
+        QVERIFY(HardwareApplyRequestParser::read({QStringLiteral("apply"), QStringLiteral("--expect"), QStringLiteral("new"),
+            QStringLiteral("--install"), QStringLiteral("old")}, request));
+        QVERIFY(!HardwareApplyRequestParser::validate(request, state));
+        QVERIFY(!HardwareApplyRequestParser::read({QStringLiteral("apply"), QStringLiteral("--install"), QStringLiteral("../bad")}, request));
+    }
 
     void moduleRulesMatchWithoutBoundDriver()
     {
@@ -162,6 +171,28 @@ private slots:
         ProfileSelection selection;
         selection.refresh(state, false);
         QVERIFY(!selection.select(profile->id, true, state));
+    }
+    void deviceRulesCoverUsbFingerprintAndPowerCapabilities()
+    {
+        QString error;
+        const auto catalog = ProfileCatalog::load(QStringLiteral(PROFILE_DIRECTORY), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        const auto fingerprint = std::find_if(catalog.cbegin(), catalog.cend(), [](const HardwareProfile &profile) {
+            return profile.id == QLatin1String("support:fingerprint");
+        });
+        QVERIFY(fingerprint != catalog.cend());
+        HardwareDevice reader;
+        reader.bus = QStringLiteral("usb");
+        reader.vendorId = QStringLiteral("27c6");
+        reader.productId = QStringLiteral("609c");
+        QVERIFY(ProfileCatalog::matches(*fingerprint, reader));
+        const auto power = std::find_if(catalog.cbegin(), catalog.cend(), [](const HardwareProfile &profile) {
+            return profile.id == QLatin1String("support:power-profiles");
+        });
+        QVERIFY(power != catalog.cend());
+        HardwareDevice battery;
+        battery.capabilities = {QStringLiteral("battery")};
+        QVERIFY(ProfileCatalog::matches(*power, battery));
     }
 
     void scannerBootstrapDoesNotNeedScanimageOrDevice()
