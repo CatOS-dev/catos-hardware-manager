@@ -6,6 +6,7 @@
 #include <QSysInfo>
 #include <QFile>
 #include <QSet>
+#include <QRegularExpression>
 #include "services/HardwareService.h"
 
 QByteArray DiagnosticReport::create(const HardwareSnapshot &snapshot)
@@ -19,6 +20,23 @@ QByteArray DiagnosticReport::create(const HardwareSnapshot &snapshot)
             {QStringLiteral("profiles"), QJsonArray::fromStringList(device.profileIds)}});
     }
     QJsonArray profiles;
+    QJsonArray warningSummary;
+    for (const auto &warning : snapshot.warnings) {
+        QString summary;
+        if (warning.contains(QStringLiteral("Driver query unavailable"), Qt::CaseInsensitive))
+            summary = QStringLiteral("driver-query-unavailable");
+        else if (warning.contains(QStringLiteral("updates are available"), Qt::CaseInsensitive))
+            summary = QStringLiteral("system-updates-available");
+        else if (warning.contains(QStringLiteral("package database"), Qt::CaseInsensitive))
+            summary = QStringLiteral("package-database-stale");
+        else if (warning.contains(QStringLiteral("package dependency"), Qt::CaseInsensitive))
+            summary = QStringLiteral("package-satisfiability-unavailable");
+        else if (warning.contains(QStringLiteral("service"), Qt::CaseInsensitive))
+            summary = QStringLiteral("service-query-warning");
+        else
+            summary = QStringLiteral("hardware-query-warning");
+        if (!warningSummary.contains(summary)) warningSummary.append(summary);
+    }
     QJsonArray kernelParameters;
     QFile cmdline(QStringLiteral("/proc/cmdline"));
     if (cmdline.open(QIODevice::ReadOnly)) {
@@ -45,6 +63,7 @@ QByteArray DiagnosticReport::create(const HardwareSnapshot &snapshot)
         {QStringLiteral("chwdAvailable"), snapshot.chwdAvailable},
         {QStringLiteral("queryFailed"), !snapshot.isValid()},
         {QStringLiteral("warningCount"), snapshot.warnings.size()},
+        {QStringLiteral("warningSummary"), warningSummary},
         {QStringLiteral("kernelParameters"), kernelParameters},
         {QStringLiteral("devices"), devices}, {QStringLiteral("profiles"), profiles}}).toJson();
 }
