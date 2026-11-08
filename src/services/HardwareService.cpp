@@ -141,7 +141,7 @@ QString categoryIcon(DeviceCategory category)
     }
 }
 
-HardwareSnapshot HardwareService::read(const QString &chwdProgram)
+HardwareSnapshot HardwareService::read(const QString &chwdProgram, ReadOptions options)
 {
     HardwareSnapshot snapshot;
     QString error;
@@ -168,7 +168,7 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram)
     for (const auto &name : QString::fromUtf8(rawPackages).split(QLatin1Char('\n'), Qt::SkipEmptyParts))
         snapshot.installedPackages.insert(name);
 
-    snapshot.devices = DeviceDiscovery::enumerate();
+    snapshot.devices = DeviceDiscovery::enumerate(options.scanners);
     QHash<QString, int> index;
     for (int i = 0; i < snapshot.devices.size(); ++i)
         index.insert(snapshot.devices[i].id + QLatin1Char(':')

@@ -229,7 +229,7 @@ QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem)
 }
 }
 
-QVector<HardwareDevice> DeviceDiscovery::enumerate()
+QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners)
 {
     std::unique_ptr<udev, decltype(&udev_unref)> context(udev_new(), &udev_unref);
     if (!context) return {};
@@ -241,6 +241,21 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate()
     }
     // SANE can identify USB/network scanners for which no standard USB
     // interface class exists. Do not misclassify all imaging-class devices.
+    if (!scanners) {
+        QVector<HardwareDevice> result;
+        QFile vendor(QStringLiteral("/sys/class/dmi/id/sys_vendor"));
+        QString vendorName;
+        if (vendor.open(QIODevice::ReadOnly)) vendorName = QString::fromUtf8(vendor.readAll()).trimmed();
+        for (auto device : all) {
+            device.dmiVendor = vendorName;
+            result.append(std::move(device));
+        }
+        std::sort(result.begin(), result.end(), [](const auto &a, const auto &b) {
+            if (a.category != b.category) return a.category < b.category;
+            return a.name.localeAwareCompare(b.name) < 0;
+        });
+        return result;
+    }
     QProcess scan;
     auto environment = QProcessEnvironment::systemEnvironment();
     environment.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));

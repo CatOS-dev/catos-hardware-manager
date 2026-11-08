@@ -110,7 +110,7 @@ int main(int argc, char **argv)
     Request request;
     if (!readRequest(application.arguments(), request)) return 2;
 
-    const HardwareSnapshot before = HardwareService::read();
+    const HardwareSnapshot before = HardwareService::read(QStringLiteral("/usr/bin/chwd"), ReadOptions{false});
     if (!before.isValid()) {
         std::fprintf(stderr, "Unable to query hardware profile state.\n");
         return 3;
@@ -121,5 +121,5 @@ int main(int argc, char **argv)
     }
 
     return HardwareTransaction::apply(before, request.remove, request.install, request.support,
-        execute, [] { return HardwareService::read(); }) ? 0 : 4;
+        execute, [] { return HardwareService::read(QStringLiteral("/usr/bin/chwd"), ReadOptions{false}); }) ? 0 : 4;
 }
