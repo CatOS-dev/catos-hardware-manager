@@ -8,6 +8,10 @@ recommended: true
 packages: [sof-firmware]
 match:
   any:
-    - driver: sof-audio-pci-intel-tgl
-    - driver: sof-audio-pci-intel-mtl
-    - modalias_prefix: "acpi:INT34C8:"
+    - module: snd_sof_pci_intel_tgl
+    - module: snd_sof_pci_intel_mtl
+    - module: snd_sof_pci_intel_lnl
+    - module: snd_sof_pci_intel_ptl
+    - module: snd_sof_amd_vangogh
+    - module: snd_sof_amd_rembrandt
+    - module: snd_sof_amd_renoir
