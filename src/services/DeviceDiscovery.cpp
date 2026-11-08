@@ -215,7 +215,8 @@ bool matchesInterface(udev_device *dev, const char *classId)
     return attribute(dev, "bInterfaceClass").compare(QLatin1String(classId), Qt::CaseInsensitive) == 0;
 }
 
-QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem)
+QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem,
+                                            const QSet<QString> &acpiHids)
 {
     QVector<HardwareDevice> devices;
     std::unique_ptr<udev_enumerate, decltype(&udev_enumerate_unref)>
@@ -293,7 +294,7 @@ QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem)
                 devices.append(makeDevice(device.get(), DeviceCategory::SmartCard, QStringLiteral("smartcard")));
         } else if (sub == QLatin1String("acpi")) {
             const QString acpiId = attribute(device.get(), "hid");
-            if (!acpiId.isEmpty())
+            if (!acpiId.isEmpty() && acpiHids.contains(acpiId))
                 devices.append(makeDevice(device.get(), DeviceCategory::Other, QStringLiteral("acpi")));
         } else if (sub == QLatin1String("wwan")) {
             devices.append(makeDevice(device.get(), DeviceCategory::MobileBroadband, QStringLiteral("wwan")));
@@ -316,12 +317,17 @@ QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem)
 
 QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners)
 {
+    return enumerate(scanners, {});
+}
+
+QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QString> &acpiHids)
+{
     std::unique_ptr<udev, decltype(&udev_unref)> context(udev_new(), &udev_unref);
     if (!context) return {};
     QHash<QString, HardwareDevice> all;
     for (const char *subsystem : {"pci", "sound", "bluetooth", "video4linux", "input",
-                                  "thunderbolt", "usb", "net", "wwan"}) {
-        for (auto device : enumerateSubsystem(context.get(), subsystem))
+                                  "thunderbolt", "usb", "net", "wwan", "acpi"}) {
+        for (auto device : enumerateSubsystem(context.get(), subsystem, acpiHids))
             add(all, std::move(device));
     }
     // SANE can identify USB/network scanners for which no standard USB

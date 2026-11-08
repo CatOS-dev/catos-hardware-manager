@@ -190,7 +190,17 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram, ReadOptions o
     for (const auto &name : QString::fromUtf8(rawPackages).split(QLatin1Char('\n'), Qt::SkipEmptyParts))
         snapshot.installedPackages.insert(name);
 
-    snapshot.devices = DeviceDiscovery::enumerate(options.scanners);
+    QString catalogError;
+    const auto support = ProfileCatalog::load(ProfileCatalog::directoryForApplication(), &catalogError);
+    if (!catalogError.isEmpty()) {
+        snapshot.error = catalogError;
+        return snapshot;
+    }
+    QSet<QString> acpiHids;
+    for (const auto &profile : support)
+        for (const auto &rule : profile.matchRules)
+            if (!rule.acpiHid.isEmpty()) acpiHids.insert(rule.acpiHid);
+    snapshot.devices = DeviceDiscovery::enumerate(options.scanners, acpiHids);
     QHash<QString, int> index;
     for (int i = 0; i < snapshot.devices.size(); ++i)
         index.insert(snapshot.devices[i].id + QLatin1Char(':')
@@ -249,11 +259,7 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram, ReadOptions o
 
     // Profile rules are completely independent of CHWD and live in a
     // separate, declarative catalog.
-    const auto support = ProfileCatalog::load(ProfileCatalog::directoryForApplication(), &error);
-    if (!error.isEmpty()) {
-        snapshot.error = error;
-        return snapshot;
-    }
+    error.clear();
     QStringList packageNames;
     for (const auto &profile : support)
         for (const auto &package : profile.packages)
