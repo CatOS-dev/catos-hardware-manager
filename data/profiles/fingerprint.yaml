@@ -1,0 +1,16 @@
+id: fingerprint
+name: Fingerprint reader support
+name_zh: 指纹识别支持
+description: fprintd and libfprint
+description_zh: fprintd 与 libfprint 指纹服务
+category: fingerprint
+recommended: true
+packages: [fprintd]
+match:
+  any:
+    - bus: usb
+      vendor: "27c6"
+      device: "55a4"
+    - bus: usb
+      vendor: "06cb"
+      device: "00bd"

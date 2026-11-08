@@ -69,6 +69,7 @@ install(FILES ${QM_FILES} DESTINATION share/catos-hardware-manager/translations)
 install(DIRECTORY data/profiles/ DESTINATION share/catos-hardware-manager/profiles
     FILES_MATCHING PATTERN "*.yaml"
 )
+install(FILES data/fingerprint-unsupported.txt DESTINATION share/catos-hardware-manager)
 
 include(CTest)
 if(BUILD_TESTING)

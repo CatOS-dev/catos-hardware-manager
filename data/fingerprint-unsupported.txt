@@ -1,0 +1,2 @@
+# vendor:product IDs maintained by libfprint as unsupported
+# The generator can replace this file from the upstream unsupported list.

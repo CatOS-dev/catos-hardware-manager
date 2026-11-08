@@ -172,6 +172,28 @@ QString sysName(udev_device *dev)
     return text(udev_device_get_sysname(dev));
 }
 
+bool unsupportedFingerprint(const QString &vendor, const QString &product)
+{
+    static QStringList ids;
+    static bool loaded = false;
+    if (!loaded) {
+        loaded = true;
+        QFile file(QStringLiteral("/usr/share/catos-hardware-manager/fingerprint-unsupported.txt"));
+        bool opened = file.open(QIODevice::ReadOnly);
+        if (!opened) {
+            file.setFileName(QStringLiteral("../data/fingerprint-unsupported.txt"));
+            opened = file.open(QIODevice::ReadOnly);
+        }
+        if (opened)
+            ids = QString::fromUtf8(file.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    }
+    const QString id = vendor.toLower() + QLatin1Char(':') + product.toLower();
+    return std::any_of(ids.begin(), ids.end(), [&id](const QString &line) {
+        const QString value = line.trimmed();
+        return !value.startsWith(QLatin1Char('#')) && value.compare(id, Qt::CaseInsensitive) == 0;
+    });
+}
+
 bool matchesInterface(udev_device *dev, const char *classId)
 {
     return attribute(dev, "bInterfaceClass").compare(QLatin1String(classId), Qt::CaseInsensitive) == 0;
@@ -237,8 +259,12 @@ QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem)
         } else if (sub == QLatin1String("usb")) {
             const QString devtype = text(udev_device_get_devtype(device.get()));
             if (devtype == QLatin1String("usb_device")) {
-                if (attribute(device.get(), "bDeviceClass").compare(QLatin1String("09"), Qt::CaseInsensitive) != 0)
-                    devices.append(makeDevice(device.get(), DeviceCategory::Other, QStringLiteral("usb-device")));
+                if (attribute(device.get(), "bDeviceClass").compare(QLatin1String("09"), Qt::CaseInsensitive) != 0) {
+                    auto generic = makeDevice(device.get(), DeviceCategory::Other, QStringLiteral("usb-device"));
+                    if (unsupportedFingerprint(generic.vendorId, generic.productId))
+                        generic.capabilities.append(QStringLiteral("fingerprint-unsupported"));
+                    devices.append(std::move(generic));
+                }
                 continue;
             }
             if (devtype != QLatin1String("usb_interface")) continue;
