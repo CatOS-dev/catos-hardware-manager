@@ -1,6 +1,8 @@
 #include "HardwareTransaction.h"
 
 #include <cstdio>
+#include <QFileInfo>
+#include <QtGlobal>
 
 namespace HardwareTransaction {
 bool apply(const HardwareSnapshot &before, const QStringList &remove,
@@ -50,6 +52,13 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
         arguments.append(downloads);
         steps.append({QStringLiteral("preflight"), downloads.join(QStringLiteral(", ")),
                       QStringLiteral("/usr/bin/pacman"), arguments});
+    }
+    if (changesDrivers && !qEnvironmentVariableIsSet("CATOS_DISABLE_SNAPSHOTS")
+        && QFileInfo::exists(QStringLiteral("/usr/bin/snapper"))) {
+        const QString description = QStringLiteral("catos-hardware: ")
+            + (remove + install).join(QStringLiteral(", "));
+        steps.append({QStringLiteral("snapshot"), description, QStringLiteral("/usr/bin/snapper"),
+                      {QStringLiteral("create"), QStringLiteral("--description"), description}});
     }
     for (const auto &name : remove)
         steps.append({QStringLiteral("remove"), name, QStringLiteral("/usr/bin/chwd"), {QStringLiteral("--remove"), name}});

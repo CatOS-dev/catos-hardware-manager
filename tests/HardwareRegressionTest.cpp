@@ -52,6 +52,11 @@ private:
         return state;
     }
 private slots:
+    void initTestCase()
+    {
+        qputenv("CATOS_DISABLE_SNAPSHOTS", "1");
+    }
+
     void recommendedDriverDoesNotStageInstalledConflictRemoval()
     {
         auto state = drivers();
