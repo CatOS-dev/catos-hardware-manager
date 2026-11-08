@@ -1,0 +1,12 @@
+id: fw-nouveau
+name: Nouveau firmware files
+name_zh: Nouveau 显卡固件文件
+description: linux-firmware-nvidia for Nouveau graphics devices
+description_zh: Nouveau 显卡的 linux-firmware-nvidia
+category: graphics
+recommended: true
+systemManaged: true
+packages: [linux-firmware-nvidia]
+match:
+  any:
+    - module: nouveau

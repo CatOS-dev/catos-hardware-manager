@@ -1,0 +1,14 @@
+id: fw-mediatek
+name: MediaTek wireless firmware files
+name_zh: MediaTek 无线网卡固件文件
+description: linux-firmware-mediatek for MediaTek wireless devices
+description_zh: MediaTek 无线设备的 linux-firmware-mediatek
+category: network
+recommended: true
+systemManaged: true
+packages: [linux-firmware-mediatek]
+match:
+  any:
+    - module: mt7921e
+    - module: mt7925e
+    - module: mt76x2u

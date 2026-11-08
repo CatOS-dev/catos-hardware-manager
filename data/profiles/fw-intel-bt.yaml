@@ -1,0 +1,13 @@
+id: fw-intel-bt
+name: Intel Bluetooth firmware files
+name_zh: Intel 蓝牙固件文件
+description: linux-firmware-intel for Intel Bluetooth devices
+description_zh: Intel 蓝牙设备的 linux-firmware-intel
+category: bluetooth
+recommended: true
+systemManaged: true
+packages: [linux-firmware-intel]
+match:
+  any:
+    - bus: usb
+      vendor: "8087"

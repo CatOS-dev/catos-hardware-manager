@@ -1,0 +1,14 @@
+id: fw-realtek
+name: Realtek firmware files
+name_zh: Realtek 固件文件
+description: linux-firmware-realtek for Realtek devices
+description_zh: Realtek 设备的 linux-firmware-realtek
+category: network
+recommended: true
+systemManaged: true
+packages: [linux-firmware-realtek]
+match:
+  any:
+    - module: "rtw88_*"
+    - module: "rtw89_*"
+    - module: r8169

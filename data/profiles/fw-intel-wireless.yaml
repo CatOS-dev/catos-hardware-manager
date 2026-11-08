@@ -1,0 +1,12 @@
+id: fw-intel-wireless
+name: Intel wireless firmware files
+name_zh: Intel 无线网卡固件文件
+description: linux-firmware-intel for Intel wireless devices
+description_zh: Intel 无线设备的 linux-firmware-intel
+category: network
+recommended: true
+systemManaged: true
+packages: [linux-firmware-intel]
+match:
+  any:
+    - module: iwlwifi

@@ -99,7 +99,16 @@ bool matchesRule(const HardwareMatchRule &rule, const HardwareDevice &device)
     if (!rule.vendor.isEmpty() && !sameId(rule.vendor, device.vendorId)) return false;
     if (!rule.device.isEmpty() && !sameId(rule.device, device.productId)) return false;
     if (!rule.driver.isEmpty() && rule.driver != device.driver) return false;
-    if (!rule.module.isEmpty() && !device.modules.contains(rule.module)) return false;
+    if (!rule.module.isEmpty()) {
+        bool moduleMatch = false;
+        for (const auto &module : device.modules) {
+            QString pattern = QRegularExpression::escape(rule.module);
+            pattern.replace(QStringLiteral("\\*"), QStringLiteral(".*"));
+            if (QRegularExpression(QStringLiteral("^") + pattern + QStringLiteral("$"))
+                    .match(module).hasMatch()) { moduleMatch = true; break; }
+        }
+        if (!moduleMatch) return false;
+    }
     if (!rule.modaliasPrefix.isEmpty()
         && !device.modalias.startsWith(rule.modaliasPrefix, Qt::CaseInsensitive)) return false;
     if (!rule.dmiVendor.isEmpty() && rule.dmiVendor != device.dmiVendor) return false;
@@ -148,6 +157,7 @@ QVector<HardwareProfile> ProfileCatalog::load(const QString &directory, QString 
             profile.source = ProfileSource::Support;
             profile.discovery = root["discovery"] && root["discovery"].as<bool>();
             profile.recommended = root["recommended"] && root["recommended"].as<bool>();
+            profile.systemManaged = root["systemManaged"] && root["systemManaged"].as<bool>();
             profile.packages = list(root["packages"]);
             profile.services = list(root["services"]);
             if (ids.contains(profile.id) || profile.name.isEmpty()

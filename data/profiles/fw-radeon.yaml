@@ -1,0 +1,12 @@
+id: fw-radeon
+name: Radeon firmware files
+name_zh: Radeon 显卡固件文件
+description: linux-firmware-radeon for Radeon devices
+description_zh: Radeon 显卡的 linux-firmware-radeon
+category: graphics
+recommended: true
+systemManaged: true
+packages: [linux-firmware-radeon]
+match:
+  any:
+    - module: radeon
