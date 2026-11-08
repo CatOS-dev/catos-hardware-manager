@@ -109,16 +109,22 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
     }
     for (const auto &name : remove) {
         const auto *profile = after.profile(QStringLiteral("chwd:") + name);
-        if (profile && profile->installed) return false;
+        if (profile && profile->installed) {
+            emitLine(QStringLiteral("ERROR|verify|%1|still-installed").arg(name));
+            return false;
+        }
     }
     for (const auto &name : install) {
         const auto *profile = after.profile(QStringLiteral("chwd:") + name);
-        if (!profile || !profile->installed) return false;
+        if (!profile || !profile->installed) {
+            emitLine(QStringLiteral("ERROR|verify|%1|not-installed").arg(name));
+            return false;
+        }
     }
     for (const auto &id : support) {
         const auto *profile = after.profile(id);
         if (!profile || !profile->ready) {
-            std::fprintf(stderr, "Support verification failed: %s. Check packages and service status.\n", id.toUtf8().constData());
+            emitLine(QStringLiteral("ERROR|support|%1|not-ready").arg(id));
             return false;
         }
     }
