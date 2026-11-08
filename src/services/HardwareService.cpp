@@ -114,6 +114,9 @@ QString categoryTitle(DeviceCategory category)
     case DeviceCategory::Printer: return QCoreApplication::translate("HardwareCategory", "Printers");
     case DeviceCategory::Scanner: return QCoreApplication::translate("HardwareCategory", "Scanners");
     case DeviceCategory::Tablet: return QCoreApplication::translate("HardwareCategory", "Tablets");
+    case DeviceCategory::Fingerprint: return QCoreApplication::translate("HardwareCategory", "Fingerprint readers");
+    case DeviceCategory::Virtualization: return QCoreApplication::translate("HardwareCategory", "Virtual machines");
+    case DeviceCategory::Power: return QCoreApplication::translate("HardwareCategory", "Power");
     case DeviceCategory::Thunderbolt: return QCoreApplication::translate("HardwareCategory", "Thunderbolt");
     case DeviceCategory::Controller: return QCoreApplication::translate("HardwareCategory", "Controllers");
     case DeviceCategory::MobileBroadband: return QCoreApplication::translate("HardwareCategory", "Mobile broadband");
@@ -133,6 +136,9 @@ QString categoryIcon(DeviceCategory category)
     case DeviceCategory::Printer: return QStringLiteral("printer");
     case DeviceCategory::Scanner: return QStringLiteral("scanner");
     case DeviceCategory::Tablet: return QStringLiteral("input-tablet");
+    case DeviceCategory::Fingerprint: return QStringLiteral("fingerprint");
+    case DeviceCategory::Virtualization: return QStringLiteral("virtual-machine");
+    case DeviceCategory::Power: return QStringLiteral("battery");
     case DeviceCategory::Thunderbolt: return QStringLiteral("network-wired");
     case DeviceCategory::Controller: return QStringLiteral("input-gaming");
     case DeviceCategory::MobileBroadband: return QStringLiteral("network-cellular");
