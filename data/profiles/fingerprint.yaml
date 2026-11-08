@@ -9,12 +9,6 @@ packages: [fprintd]
 match:
   any:
     - bus: usb
-      vendor: "006b"
-      device: "00da"
-    - bus: usb
-      vendor: "0413"
-      device: "2766"
-    - bus: usb
       vendor: "045e"
       device: "00bc"
     - bus: usb
@@ -24,41 +18,17 @@ match:
       vendor: "045e"
       device: "00ca"
     - bus: usb
-      vendor: "045e"
-      device: "0815"
-    - bus: usb
-      vendor: "047d"
-      device: "00f2"
-    - bus: usb
-      vendor: "047d"
-      device: "8054"
-    - bus: usb
-      vendor: "047d"
-      device: "8055"
-    - bus: usb
       vendor: "0483"
       device: "2015"
     - bus: usb
       vendor: "0483"
       device: "2017"
     - bus: usb
-      vendor: "04e8"
-      device: "730b"
-    - bus: usb
-      vendor: "04f2"
-      device: "b61e"
-    - bus: usb
-      vendor: "04f3"
-      device: "036b"
-    - bus: usb
       vendor: "04f3"
       device: "0903"
     - bus: usb
       vendor: "04f3"
       device: "0907"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c00"
     - bus: usb
       vendor: "04f3"
       device: "0c01"
@@ -223,49 +193,19 @@ match:
       device: "0c4b"
     - bus: usb
       vendor: "04f3"
-      device: "0c4c"
-    - bus: usb
-      vendor: "04f3"
       device: "0c4d"
     - bus: usb
       vendor: "04f3"
       device: "0c4f"
     - bus: usb
       vendor: "04f3"
-      device: "0c57"
-    - bus: usb
-      vendor: "04f3"
       device: "0c58"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c5a"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c5e"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c60"
     - bus: usb
       vendor: "04f3"
       device: "0c63"
     - bus: usb
       vendor: "04f3"
-      device: "0c6c"
-    - bus: usb
-      vendor: "04f3"
       device: "0c6e"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c70"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c72"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c77"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c7c"
     - bus: usb
       vendor: "04f3"
       device: "0c7d"
@@ -274,34 +214,16 @@ match:
       device: "0c7e"
     - bus: usb
       vendor: "04f3"
-      device: "0c7f"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c80"
-    - bus: usb
-      vendor: "04f3"
       device: "0c82"
     - bus: usb
       vendor: "04f3"
-      device: "0c85"
-    - bus: usb
-      vendor: "04f3"
       device: "0c88"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c8a"
     - bus: usb
       vendor: "04f3"
       device: "0c8c"
     - bus: usb
       vendor: "04f3"
       device: "0c8d"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c8e"
-    - bus: usb
-      vendor: "04f3"
-      device: "0c90"
     - bus: usb
       vendor: "04f3"
       device: "0c98"
@@ -317,9 +239,6 @@ match:
     - bus: usb
       vendor: "04f3"
       device: "0c9f"
-    - bus: usb
-      vendor: "04f3"
-      device: "0ca2"
     - bus: usb
       vendor: "04f3"
       device: "0ca3"
@@ -339,54 +258,6 @@ match:
       vendor: "04f3"
       device: "0cb6"
     - bus: usb
-      vendor: "04f3"
-      device: "24cc"
-    - bus: usb
-      vendor: "04f3"
-      device: "2706"
-    - bus: usb
-      vendor: "04f3"
-      device: "3032"
-    - bus: usb
-      vendor: "04f3"
-      device: "3057"
-    - bus: usb
-      vendor: "04f3"
-      device: "3058"
-    - bus: usb
-      vendor: "04f3"
-      device: "3066"
-    - bus: usb
-      vendor: "04f3"
-      device: "3087"
-    - bus: usb
-      vendor: "04f3"
-      device: "309f"
-    - bus: usb
-      vendor: "04f3"
-      device: "30c6"
-    - bus: usb
-      vendor: "04f3"
-      device: "3104"
-    - bus: usb
-      vendor: "04f3"
-      device: "310d"
-    - bus: usb
-      vendor: "04f3"
-      device: "3128"
-    - bus: usb
-      vendor: "04f3"
-      device: "3195"
-    - bus: usb
-      vendor: "04f3"
-      device: "31fc"
-    - bus: usb
-      vendor: "04f3"
-      device: "3201"
-    - bus: usb
-      vendor: "04f3"
-      device: "3212"
-    - bus: usb
       vendor: "05ba"
       device: "0007"
     - bus: usb
@@ -396,56 +267,11 @@ match:
       vendor: "05ba"
       device: "000a"
     - bus: usb
-      vendor: "05ba"
-      device: "000e"
-    - bus: usb
-      vendor: "05c8"
-      device: "03c0"
-    - bus: usb
       vendor: "061a"
       device: "0110"
     - bus: usb
       vendor: "06cb"
-      device: "0051"
-    - bus: usb
-      vendor: "06cb"
-      device: "0081"
-    - bus: usb
-      vendor: "06cb"
-      device: "0088"
-    - bus: usb
-      vendor: "06cb"
-      device: "008a"
-    - bus: usb
-      vendor: "06cb"
-      device: "009a"
-    - bus: usb
-      vendor: "06cb"
-      device: "009b"
-    - bus: usb
-      vendor: "06cb"
-      device: "00a1"
-    - bus: usb
-      vendor: "06cb"
-      device: "00a2"
-    - bus: usb
-      vendor: "06cb"
-      device: "00a8"
-    - bus: usb
-      vendor: "06cb"
-      device: "00b7"
-    - bus: usb
-      vendor: "06cb"
-      device: "00bb"
-    - bus: usb
-      vendor: "06cb"
-      device: "00bc"
-    - bus: usb
-      vendor: "06cb"
       device: "00bd"
-    - bus: usb
-      vendor: "06cb"
-      device: "00be"
     - bus: usb
       vendor: "06cb"
       device: "00c2"
@@ -457,31 +283,7 @@ match:
       device: "00c6"
     - bus: usb
       vendor: "06cb"
-      device: "00c7"
-    - bus: usb
-      vendor: "06cb"
-      device: "00c9"
-    - bus: usb
-      vendor: "06cb"
-      device: "00cb"
-    - bus: usb
-      vendor: "06cb"
-      device: "00d8"
-    - bus: usb
-      vendor: "06cb"
-      device: "00da"
-    - bus: usb
-      vendor: "06cb"
-      device: "00dc"
-    - bus: usb
-      vendor: "06cb"
       device: "00df"
-    - bus: usb
-      vendor: "06cb"
-      device: "00e4"
-    - bus: usb
-      vendor: "06cb"
-      device: "00e7"
     - bus: usb
       vendor: "06cb"
       device: "00e9"
@@ -496,16 +298,7 @@ match:
       device: "00fc"
     - bus: usb
       vendor: "06cb"
-      device: "00fd"
-    - bus: usb
-      vendor: "06cb"
-      device: "00ff"
-    - bus: usb
-      vendor: "06cb"
       device: "0100"
-    - bus: usb
-      vendor: "06cb"
-      device: "0102"
     - bus: usb
       vendor: "06cb"
       device: "0103"
@@ -578,12 +371,6 @@ match:
     - bus: usb
       vendor: "06cb"
       device: "01a4"
-    - bus: usb
-      vendor: "06cb"
-      device: "ce67"
-    - bus: usb
-      vendor: "06cb"
-      device: "ceef"
     - bus: usb
       vendor: "08ff"
       device: "1600"
@@ -706,67 +493,10 @@ match:
       device: "2810"
     - bus: usb
       vendor: "08ff"
-      device: "3400"
-    - bus: usb
-      vendor: "08ff"
       device: "5501"
     - bus: usb
       vendor: "08ff"
       device: "5731"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5801"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5802"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5805"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5834"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5840"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5841"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5842"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5843"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5844"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5845"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5860"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5863"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5864"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5865"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5866"
-    - bus: usb
-      vendor: "0a5c"
-      device: "5867"
-    - bus: usb
-      vendor: "0bda"
-      device: "0129"
-    - bus: usb
-      vendor: "0bda"
-      device: "5812"
     - bus: usb
       vendor: "0bda"
       device: "5813"
@@ -775,40 +505,19 @@ match:
       device: "5816"
     - bus: usb
       vendor: "10a5"
-      device: "0007"
-    - bus: usb
-      vendor: "10a5"
-      device: "9200"
-    - bus: usb
-      vendor: "10a5"
-      device: "9201"
-    - bus: usb
-      vendor: "10a5"
       device: "9524"
     - bus: usb
       vendor: "10a5"
       device: "9544"
     - bus: usb
       vendor: "10a5"
-      device: "9800"
-    - bus: usb
-      vendor: "10a5"
       device: "9b24"
-    - bus: usb
-      vendor: "10a5"
-      device: "a120"
     - bus: usb
       vendor: "10a5"
       device: "a305"
     - bus: usb
       vendor: "10a5"
       device: "a306"
-    - bus: usb
-      vendor: "10a5"
-      device: "a900"
-    - bus: usb
-      vendor: "10a5"
-      device: "a921"
     - bus: usb
       vendor: "10a5"
       device: "c844"
@@ -823,28 +532,16 @@ match:
       device: "da04"
     - bus: usb
       vendor: "10a5"
-      device: "e340"
-    - bus: usb
-      vendor: "10a5"
       device: "ffe0"
     - bus: usb
       vendor: "1162"
       device: "2200"
-    - bus: usb
-      vendor: "1188"
-      device: "9545"
     - bus: usb
       vendor: "138a"
       device: "0001"
     - bus: usb
       vendor: "138a"
       device: "0005"
-    - bus: usb
-      vendor: "138a"
-      device: "0006"
-    - bus: usb
-      vendor: "138a"
-      device: "0007"
     - bus: usb
       vendor: "138a"
       device: "0008"
@@ -865,52 +562,16 @@ match:
       device: "0018"
     - bus: usb
       vendor: "138a"
-      device: "003a"
-    - bus: usb
-      vendor: "138a"
-      device: "003c"
-    - bus: usb
-      vendor: "138a"
-      device: "003d"
-    - bus: usb
-      vendor: "138a"
-      device: "003f"
-    - bus: usb
-      vendor: "138a"
       device: "0050"
     - bus: usb
       vendor: "138a"
-      device: "0090"
-    - bus: usb
-      vendor: "138a"
       device: "0091"
-    - bus: usb
-      vendor: "138a"
-      device: "0092"
-    - bus: usb
-      vendor: "138a"
-      device: "0094"
-    - bus: usb
-      vendor: "138a"
-      device: "0097"
-    - bus: usb
-      vendor: "138a"
-      device: "009d"
-    - bus: usb
-      vendor: "138a"
-      device: "00a6"
-    - bus: usb
-      vendor: "138a"
-      device: "00ab"
     - bus: usb
       vendor: "147e"
       device: "1000"
     - bus: usb
       vendor: "147e"
       device: "1001"
-    - bus: usb
-      vendor: "147e"
-      device: "1002"
     - bus: usb
       vendor: "147e"
       device: "2016"
@@ -921,32 +582,11 @@ match:
       vendor: "147e"
       device: "3001"
     - bus: usb
-      vendor: "1491"
-      device: "0088"
-    - bus: usb
-      vendor: "16d1"
-      device: "1027"
-    - bus: usb
-      vendor: "1c7a"
-      device: "0300"
-    - bus: usb
       vendor: "1c7a"
       device: "0570"
     - bus: usb
       vendor: "1c7a"
       device: "0571"
-    - bus: usb
-      vendor: "1c7a"
-      device: "0575"
-    - bus: usb
-      vendor: "1c7a"
-      device: "0576"
-    - bus: usb
-      vendor: "1c7a"
-      device: "0577"
-    - bus: usb
-      vendor: "1c7a"
-      device: "057e"
     - bus: usb
       vendor: "1c7a"
       device: "0582"
@@ -970,124 +610,19 @@ match:
       device: "05a1"
     - bus: usb
       vendor: "1c7a"
-      device: "05a5"
-    - bus: usb
-      vendor: "1c7a"
-      device: "05aa"
-    - bus: usb
-      vendor: "1c7a"
       device: "05ae"
     - bus: usb
       vendor: "1c7a"
       device: "0603"
     - bus: usb
       vendor: "1c7a"
-      device: "0801"
-    - bus: usb
-      vendor: "1c7a"
       device: "9201"
-    - bus: usb
-      vendor: "2541"
-      device: "0236"
-    - bus: usb
-      vendor: "2541"
-      device: "9711"
     - bus: usb
       vendor: "2541"
       device: "fa03"
     - bus: usb
       vendor: "27c6"
-      device: "5042"
-    - bus: usb
-      vendor: "27c6"
-      device: "5110"
-    - bus: usb
-      vendor: "27c6"
-      device: "5117"
-    - bus: usb
-      vendor: "27c6"
-      device: "5120"
-    - bus: usb
-      vendor: "27c6"
-      device: "5125"
-    - bus: usb
-      vendor: "27c6"
-      device: "5201"
-    - bus: usb
-      vendor: "27c6"
-      device: "521d"
-    - bus: usb
-      vendor: "27c6"
-      device: "5301"
-    - bus: usb
-      vendor: "27c6"
-      device: "530c"
-    - bus: usb
-      vendor: "27c6"
-      device: "532d"
-    - bus: usb
-      vendor: "27c6"
-      device: "5335"
-    - bus: usb
-      vendor: "27c6"
-      device: "533c"
-    - bus: usb
-      vendor: "27c6"
-      device: "5381"
-    - bus: usb
-      vendor: "27c6"
-      device: "5385"
-    - bus: usb
-      vendor: "27c6"
-      device: "538c"
-    - bus: usb
-      vendor: "27c6"
-      device: "538d"
-    - bus: usb
-      vendor: "27c6"
-      device: "5395"
-    - bus: usb
-      vendor: "27c6"
-      device: "5503"
-    - bus: usb
-      vendor: "27c6"
-      device: "550a"
-    - bus: usb
-      vendor: "27c6"
-      device: "550c"
-    - bus: usb
-      vendor: "27c6"
-      device: "5584"
-    - bus: usb
-      vendor: "27c6"
-      device: "55a2"
-    - bus: usb
-      vendor: "27c6"
-      device: "55a4"
-    - bus: usb
-      vendor: "27c6"
-      device: "55b4"
-    - bus: usb
-      vendor: "27c6"
-      device: "5740"
-    - bus: usb
-      vendor: "27c6"
-      device: "581a"
-    - bus: usb
-      vendor: "27c6"
       device: "5840"
-    - bus: usb
-      vendor: "27c6"
-      device: "589a"
-    - bus: usb
-      vendor: "27c6"
-      device: "5e0a"
-    - bus: usb
-      vendor: "27c6"
-      device: "5f10"
-    - bus: usb
-      vendor: "27c6"
-      device: "5f91"
     - bus: usb
       vendor: "27c6"
       device: "6014"
@@ -1213,9 +748,6 @@ match:
       device: "6a94"
     - bus: usb
       vendor: "2808"
-      device: "06fc"
-    - bus: usb
-      vendor: "2808"
       device: "077a"
     - bus: usb
       vendor: "2808"
@@ -1231,34 +763,13 @@ match:
       device: "6553"
     - bus: usb
       vendor: "2808"
-      device: "6652"
-    - bus: usb
-      vendor: "2808"
-      device: "9338"
-    - bus: usb
-      vendor: "2808"
-      device: "9348"
-    - bus: usb
-      vendor: "2808"
-      device: "93a9"
-    - bus: usb
-      vendor: "2808"
       device: "9e48"
     - bus: usb
       vendor: "2808"
       device: "a27a"
     - bus: usb
       vendor: "2808"
-      device: "a553"
-    - bus: usb
-      vendor: "2808"
-      device: "a573"
-    - bus: usb
-      vendor: "2808"
       device: "a57a"
-    - bus: usb
-      vendor: "2808"
-      device: "a658"
     - bus: usb
       vendor: "2808"
       device: "a78a"
@@ -1273,9 +784,6 @@ match:
       device: "a99a"
     - bus: usb
       vendor: "2808"
-      device: "c652"
-    - bus: usb
-      vendor: "2808"
       device: "d979"
     - bus: usb
       vendor: "298d"
@@ -1284,26 +792,8 @@ match:
       vendor: "298d"
       device: "2020"
     - bus: usb
-      vendor: "298d"
-      device: "2033"
-    - bus: usb
-      vendor: "2df0"
-      device: "0003"
-    - bus: usb
       vendor: "3274"
       device: "8012"
     - bus: usb
       vendor: "3274"
       device: "9003"
-    - bus: usb
-      vendor: "3274"
-      device: "9008"
-    - bus: usb
-      vendor: "3274"
-      device: "b012"
-    - bus: usb
-      vendor: "33a7"
-      device: "2388"
-    - bus: usb
-      vendor: "3538"
-      device: "0930"
