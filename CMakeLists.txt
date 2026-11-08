@@ -21,6 +21,8 @@ add_library(catos-hardware-core STATIC
     src/services/HardwareService.h
     src/services/HardwareService.cpp
     src/services/HardwareTransaction.cpp
+    src/services/HardwareApplyRequest.h
+    src/services/HardwareApplyRequest.cpp
     src/services/DiagnosticReport.cpp
     src/services/HardwareMonitor.cpp
     src/services/HardwareMonitor.h
