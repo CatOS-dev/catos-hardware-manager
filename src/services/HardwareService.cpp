@@ -259,15 +259,19 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram, ReadOptions o
 void HardwareService::updateSupportState(HardwareProfile &profile, const HardwareSnapshot &snapshot)
 {
     profile.missingPackages.clear();
+    profile.conflictingPackages.clear();
     profile.disabledServices.clear();
     profile.inactiveServices.clear();
     for (const auto &name : profile.packages)
         if (!snapshot.installedPackages.contains(name)) profile.missingPackages.append(name);
+    for (const auto &name : profile.conflicts)
+        if (snapshot.installedPackages.contains(name)) profile.conflictingPackages.append(name);
     for (const auto &name : profile.services) {
         if (!snapshot.enabledServices.contains(name)) profile.disabledServices.append(name);
         if (!snapshot.activeServices.contains(name)) profile.inactiveServices.append(name);
     }
-    profile.installed = profile.missingPackages.isEmpty() && profile.disabledServices.isEmpty();
+    profile.installed = profile.conflictingPackages.isEmpty()
+        && profile.missingPackages.isEmpty() && profile.disabledServices.isEmpty();
     profile.ready = profile.installed && profile.inactiveServices.isEmpty();
 }
 

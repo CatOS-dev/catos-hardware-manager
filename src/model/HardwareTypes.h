@@ -56,6 +56,8 @@ struct HardwareProfile {
     QStringList inactiveServices;
     QStringList disabledServices;
     QString conflictGroup;
+    QStringList conflicts;
+    QStringList conflictingPackages;
     QVector<HardwareMatchRule> matchRules;
     QString chwdName;
     bool applicable = false;

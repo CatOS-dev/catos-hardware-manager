@@ -86,7 +86,16 @@ bool validate(const Request &request, const HardwareSnapshot &snapshot)
     for (const auto &id : request.support) {
         const auto *profile = snapshot.profile(id);
         if (!profile || profile->source != ProfileSource::Support
-            || !profile->applicable || profile->ready) return false;
+            || !profile->applicable || profile->ready || !profile->conflictingPackages.isEmpty()) return false;
+        for (const auto &otherId : request.support) {
+            if (otherId == id) continue;
+            const auto *other = snapshot.profile(otherId);
+            if (!other) return false;
+            for (const auto &package : profile->conflicts)
+                if (other->packages.contains(package)) return false;
+            for (const auto &package : other->conflicts)
+                if (profile->packages.contains(package)) return false;
+        }
     }
     return true;
 }

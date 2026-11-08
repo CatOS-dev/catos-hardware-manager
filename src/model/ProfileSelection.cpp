@@ -52,6 +52,7 @@ bool ProfileSelection::select(const QString &id, bool enabled, const HardwareSna
     const auto *profile = state.profile(id);
     if (!profile || (!profile->applicable && (profile->source == ProfileSource::Support || !profile->installed))) return false;
     if (profile->systemManaged && profile->ready && !enabled) return false;
+    if (enabled && !profile->conflictingPackages.isEmpty()) return false;
     if (enabled) {
         if (profile->source == ProfileSource::Chwd && !profile->conflictGroup.isEmpty()) {
             for (const auto &other : state.profiles) {
