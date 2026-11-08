@@ -2,6 +2,7 @@
 #include "services/DiagnosticReport.h"
 #include "services/HardwareService.h"
 #include "services/HardwareTransaction.h"
+#include "services/HardwareApplyRequest.h"
 #include "services/ProfileCatalog.h"
 
 #include <QJsonDocument>
@@ -102,6 +103,25 @@ private slots:
         selection.refresh(state, false);
         QVERIFY(!selection.select(QStringLiteral("support:bluetooth"), true, state));
     }
+    void executorRequestRejectsDuplicateAndConflictingEntries()
+    {
+        HardwareApplyRequest request;
+        QVERIFY(!HardwareApplyRequestParser::read({QStringLiteral("apply"), QStringLiteral("--expect"), QStringLiteral("old"),
+            QStringLiteral("--expect"), QStringLiteral("old")}, request));
+        QVERIFY(!HardwareApplyRequestParser::read({QStringLiteral("apply"), QStringLiteral("--install"), QStringLiteral("new"),
+            QStringLiteral("--install"), QStringLiteral("new")}, request));
+
+        auto state = drivers();
+        state.profiles[0].conflictGroup = QStringLiteral("gpu");
+        state.profiles[1].conflictGroup = QStringLiteral("gpu");
+        request = {};
+        QVERIFY(HardwareApplyRequestParser::read({QStringLiteral("apply"), QStringLiteral("--expect"), QStringLiteral("old"),
+            QStringLiteral("--remove"), QStringLiteral("old"), QStringLiteral("--install"), QStringLiteral("new")}, request));
+        QVERIFY(HardwareApplyRequestParser::validate(request, state));
+        request.install = {QStringLiteral("new"), QStringLiteral("old")};
+        QVERIFY(!HardwareApplyRequestParser::validate(request, state));
+    }
+
     void moduleRulesMatchWithoutBoundDriver()
     {
         QString error;
