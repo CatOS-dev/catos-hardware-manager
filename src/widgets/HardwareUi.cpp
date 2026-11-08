@@ -41,6 +41,8 @@ QString shape(const QString &name)
         return QStringLiteral("<path d='M8 21c1-3 1-7 1-9a3 3 0 0 1 6 0c0 2 0 5 1 8M5 18c1-2 1-5 1-7a6 6 0 0 1 12 0c0 2 0 5 2 7M11 21c.5-2 1-5 1-8a1 1 0 0 1 2 0c0 3 .5 6 1 8'/>");
     if (name == QLatin1String("virtual-machine"))
         return QStringLiteral("<rect x='3' y='4' width='18' height='13' rx='2'/><path d='M8 21h8M12 17v4M7 9h10M7 12h5'/>");
+    if (name == QLatin1String("cpu"))
+        return QStringLiteral("<rect x='4' y='4' width='16' height='16' rx='2'/><path d='M8 1v3M12 1v3M16 1v3M8 20v3M12 20v3M16 20v3M1 8h3M1 12h3M1 16h3M20 8h3M20 12h3M20 16h3'/>");
     if (name == QLatin1String("battery"))
         return QStringLiteral("<rect x='3' y='6' width='17' height='12' rx='2'/><path d='M20 10h2v4h-2M6 9v6h4V9z'/>");
     if (name == QLatin1String("input-gaming"))

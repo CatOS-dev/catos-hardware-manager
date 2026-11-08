@@ -8,7 +8,7 @@
 
 enum class DeviceCategory {
     Graphics, Network, Audio, Bluetooth, Camera, Printer, Scanner,
-    Tablet, Fingerprint, Virtualization, Power, Thunderbolt, Controller, MobileBroadband, SmartCard, Other
+    Tablet, Fingerprint, Virtualization, Power, Cpu, Thunderbolt, Controller, MobileBroadband, SmartCard, Other
 };
 
 enum class ProfileSource { Chwd, Support };

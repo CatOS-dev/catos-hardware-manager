@@ -1,0 +1,11 @@
+id: cpu-amd-ucode
+name: AMD CPU microcode
+name_zh: AMD CPU 微码
+description: AMD processor microcode updates
+description_zh: AMD 处理器微码更新
+category: cpu
+recommended: true
+packages: [amd-ucode]
+match:
+  any:
+    - capability: cpu-amd

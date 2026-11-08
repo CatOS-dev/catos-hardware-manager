@@ -55,7 +55,7 @@ void ProfileCatalogPage::rebuild()
         DeviceCategory::Graphics, DeviceCategory::Network, DeviceCategory::Audio,
         DeviceCategory::Bluetooth, DeviceCategory::Camera, DeviceCategory::Printer,
         DeviceCategory::Scanner, DeviceCategory::Tablet, DeviceCategory::Fingerprint,
-        DeviceCategory::Virtualization, DeviceCategory::Power,
+        DeviceCategory::Virtualization, DeviceCategory::Power, DeviceCategory::Cpu,
         DeviceCategory::Thunderbolt, DeviceCategory::Controller, DeviceCategory::MobileBroadband,
         DeviceCategory::SmartCard, DeviceCategory::Other
     };

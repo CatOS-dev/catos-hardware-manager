@@ -41,6 +41,7 @@ DeviceCategory category(const QString &name)
         {QStringLiteral("fingerprint"), DeviceCategory::Fingerprint},
         {QStringLiteral("virtualization"), DeviceCategory::Virtualization},
         {QStringLiteral("power"), DeviceCategory::Power},
+        {QStringLiteral("cpu"), DeviceCategory::Cpu},
         {QStringLiteral("thunderbolt"), DeviceCategory::Thunderbolt},
         {QStringLiteral("controller"), DeviceCategory::Controller},
         {QStringLiteral("wwan"), DeviceCategory::MobileBroadband},

@@ -371,6 +371,25 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners)
             add(all, std::move(scanner));
         }
     }
+    QFile cpuInfo(QStringLiteral("/proc/cpuinfo"));
+    if (cpuInfo.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        const QString contents = QString::fromUtf8(cpuInfo.readAll());
+        const auto match = QRegularExpression(QStringLiteral("^vendor_id\\s*:\\s*(.+)$"), QRegularExpression::MultilineOption).match(contents);
+        const QString vendor = match.captured(1).trimmed().toLower();
+        const QString capability = vendor == QLatin1String("authenticamd") ? QStringLiteral("cpu-amd")
+            : vendor == QLatin1String("genuineintel") ? QStringLiteral("cpu-intel") : QString();
+        if (!capability.isEmpty()) {
+            HardwareDevice device;
+            device.id = QStringLiteral("system:cpu");
+            device.category = DeviceCategory::Cpu;
+            device.bus = QStringLiteral("system");
+            device.address = QStringLiteral("cpu");
+            device.name = vendor == QLatin1String("authenticamd") ? QStringLiteral("AMD processor") : QStringLiteral("Intel processor");
+            device.capabilities.append(capability);
+            add(all, std::move(device));
+        }
+    }
+
     QProcess virtualization;
     virtualization.start(QStringLiteral("systemd-detect-virt"), {QStringLiteral("--vm")});
     if (virtualization.waitForFinished(1200) && virtualization.exitStatus() == QProcess::NormalExit
