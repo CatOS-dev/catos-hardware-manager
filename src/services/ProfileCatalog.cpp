@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <unistd.h>
 
 namespace {
 QString field(const YAML::Node &node, const char *name)
@@ -124,6 +125,7 @@ QString ProfileCatalog::installedDirectory()
 
 QString ProfileCatalog::directoryForApplication()
 {
+    if (geteuid() == 0) return installedDirectory();
     const QDir directory(QCoreApplication::applicationDirPath());
     const QString profiles = directory.filePath(QStringLiteral("../data/profiles"));
     if (QFile::exists(directory.filePath(QStringLiteral("../CMakeLists.txt")))
