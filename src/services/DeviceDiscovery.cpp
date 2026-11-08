@@ -8,6 +8,7 @@
 #include <QRegularExpression>
 #include <QProcess>
 #include <QProcessEnvironment>
+#include <QStandardPaths>
 #include <libudev.h>
 
 #include <algorithm>
@@ -388,6 +389,9 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
         device.address = QStringLiteral("graphics");
         device.name = QStringLiteral("Multiple graphics adapters");
         device.capabilities.append(QStringLiteral("dual-gpu"));
+        if (QFileInfo::exists(QStringLiteral("/sys/kernel/debug/vgaswitcheroo/switch"))
+            || !QStandardPaths::findExecutable(QStringLiteral("switcherooctl")).isEmpty())
+            device.capabilities.append(QStringLiteral("switcheroo"));
         add(all, std::move(device));
     }
 
