@@ -282,6 +282,7 @@ private slots:
     void diagnosticReportOmitsPrivateFields()
     {
         auto state = stoppedBluetooth();
+        state.devices[0].category = DeviceCategory::Bluetooth;
         state.devices[0].name = QStringLiteral("PRIVATE_SERIAL");
         state.devices[0].address = QStringLiteral("PRIVATE_ADDRESS");
         state.devices[0].modalias = QStringLiteral("PRIVATE_ALIAS");
@@ -292,6 +293,8 @@ private slots:
         const auto document = QJsonDocument::fromJson(report);
         QVERIFY(document.isObject());
         QCOMPARE(document.object().value(QStringLiteral("queryFailed")).toBool(), true);
+        const auto devices = document.object().value(QStringLiteral("devices")).toArray();
+        QCOMPARE(devices.first().toObject().value(QStringLiteral("category")).toString(), QStringLiteral("Bluetooth"));
         QVERIFY(report.contains("bluetooth.service"));
     }
 };
