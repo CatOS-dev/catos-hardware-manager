@@ -1,0 +1,12 @@
+id: vm-qemu
+name: QEMU guest agent
+name_zh: QEMU 客户机代理
+description: qemu-guest-agent for virtual machines
+description_zh: 虚拟机 qemu-guest-agent
+category: virtualization
+recommended: true
+packages: [qemu-guest-agent]
+services: [qemu-guest-agent.service]
+match:
+  any:
+    - capability: qemu-ga-port

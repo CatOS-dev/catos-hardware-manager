@@ -1,0 +1,12 @@
+id: vm-virtualbox
+name: VirtualBox guest tools
+name_zh: VirtualBox 客户机工具
+description: VirtualBox guest utilities
+description_zh: VirtualBox 客户机工具
+category: virtualization
+recommended: true
+packages: [virtualbox-guest-utils]
+services: [vboxservice.service]
+match:
+  any:
+    - capability: virt-oracle

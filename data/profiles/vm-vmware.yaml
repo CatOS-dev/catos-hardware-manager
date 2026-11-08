@@ -1,0 +1,12 @@
+id: vm-vmware
+name: VMware guest tools
+name_zh: VMware 客户机工具
+description: open-vm-tools for VMware guests
+description_zh: VMware 客户机的 open-vm-tools
+category: virtualization
+recommended: true
+packages: [open-vm-tools]
+services: [vmtoolsd.service, vmware-vmblock-fuse.service]
+match:
+  any:
+    - capability: virt-vmware
