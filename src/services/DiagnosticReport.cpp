@@ -4,6 +4,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSysInfo>
+#include <QFile>
+#include <QSet>
 #include "services/HardwareService.h"
 
 QByteArray DiagnosticReport::create(const HardwareSnapshot &snapshot)
@@ -17,6 +19,19 @@ QByteArray DiagnosticReport::create(const HardwareSnapshot &snapshot)
             {QStringLiteral("profiles"), QJsonArray::fromStringList(device.profileIds)}});
     }
     QJsonArray profiles;
+    QJsonArray kernelParameters;
+    QFile cmdline(QStringLiteral("/proc/cmdline"));
+    if (cmdline.open(QIODevice::ReadOnly)) {
+        const QSet<QString> allowedPrefixes{QStringLiteral("nomodeset"), QStringLiteral("i915."), QStringLiteral("amdgpu."), QStringLiteral("radeon."), QStringLiteral("nouveau."), QStringLiteral("nvidia."), QStringLiteral("vfio-pci.ids")};
+        for (const auto &part : QString::fromUtf8(cmdline.readAll()).split(QLatin1Char(' '), Qt::SkipEmptyParts)) {
+            for (const auto &prefix : allowedPrefixes) {
+                if (part == prefix || part.startsWith(prefix + QLatin1Char('='))) {
+                    kernelParameters.append(part);
+                    break;
+                }
+            }
+        }
+    }
     for (const auto &profile : snapshot.profiles) {
         profiles.append(QJsonObject{{QStringLiteral("id"), profile.id},
             {QStringLiteral("applicable"), profile.applicable}, {QStringLiteral("installed"), profile.installed},
@@ -30,5 +45,6 @@ QByteArray DiagnosticReport::create(const HardwareSnapshot &snapshot)
         {QStringLiteral("chwdAvailable"), snapshot.chwdAvailable},
         {QStringLiteral("queryFailed"), !snapshot.isValid()},
         {QStringLiteral("warningCount"), snapshot.warnings.size()},
+        {QStringLiteral("kernelParameters"), kernelParameters},
         {QStringLiteral("devices"), devices}, {QStringLiteral("profiles"), profiles}}).toJson();
 }
