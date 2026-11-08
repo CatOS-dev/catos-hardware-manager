@@ -9,9 +9,12 @@ if len(sys.argv) != 3:
 source = Path(sys.argv[1])
 output = Path(sys.argv[2])
 text = source.read_text(encoding="utf-8")
-pairs = {(v.lower(), p.lower()) for v, p in re.findall(r"usb:v([0-9a-fA-F]{4})p([0-9a-fA-F]{4})\*", text)}
+pairs = {(v.lower(), p.lower()) for v, p in re.findall(
+    r"^usb:v([0-9a-fA-F]{4})p([0-9a-fA-F]{4})\*$", text, re.MULTILINE)}
 pairs.update((v.lower(), p.lower()) for v, p in re.findall(
-    r"0x([0-9a-fA-F]{4})[^\n]{0,80}?0x([0-9a-fA-F]{4})", text))
+    r"\b(?:USB_DEVICE|USB_DEVICE_ID)\s*\(\s*0x([0-9a-fA-F]{4})\s*,\s*0x([0-9a-fA-F]{4})\s*\)", text))
+pairs.update((v.lower(), p.lower()) for v, p in re.findall(
+    r"\.vendor_id\s*=\s*0x([0-9a-fA-F]{4}).{0,120}?\.product_id\s*=\s*0x([0-9a-fA-F]{4})", text, re.DOTALL))
 pairs = sorted(pairs)
 if not pairs:
     raise SystemExit("no USB vendor/product IDs found")
