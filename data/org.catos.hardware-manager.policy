@@ -5,6 +5,7 @@
   <action id="org.catos.hardware-manager.apply">
     <description>Apply CatOS hardware configuration</description>
     <message>Authentication is required to apply hardware configuration changes.</message>
+    <message xml:lang="zh_CN">需要认证才能应用硬件配置更改。</message>
     <defaults>
       <allow_any>auth_admin</allow_any>
       <allow_inactive>auth_admin</allow_inactive>
