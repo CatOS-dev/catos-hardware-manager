@@ -1,0 +1,13 @@
+id: power-profiles
+name: Power profiles
+name_zh: 电源模式切换
+description: power-profiles-daemon used by KDE and GNOME power settings
+description_zh: KDE 和 GNOME 电源设置使用的 power-profiles-daemon
+category: power
+recommended: true
+packages: [power-profiles-daemon]
+services: [power-profiles-daemon.service]
+conflicts: [tlp, tuned, tuned-ppd, auto-cpufreq]
+match:
+  any:
+    - capability: battery
