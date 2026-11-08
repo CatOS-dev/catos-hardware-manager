@@ -63,14 +63,9 @@ QString driverName(udev_device *dev)
 
 QString boundDriver(udev_device *dev)
 {
-    for (auto *node = dev; node; node = udev_device_get_parent(node)) {
-        const QString name = driverName(node);
-        if (!name.isEmpty() && !QStringList{
-            QStringLiteral("usb"), QStringLiteral("pci"), QStringLiteral("platform"),
-            QStringLiteral("xhci_hcd"), QStringLiteral("ehci_hcd")
-        }.contains(name)) return name;
-    }
-    return {};
+    // The driver belongs to the functional device being reported. Walking
+    // toward a hub or PCI bridge reports the controller driver instead.
+    return driverName(dev);
 }
 
 QString physicalKey(udev_device *dev)
