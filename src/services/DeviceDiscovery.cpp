@@ -203,7 +203,13 @@ QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem)
                 devices.append(std::move(controller));
             }
         } else if (sub == QLatin1String("usb")) {
-            if (text(udev_device_get_devtype(device.get())) != QLatin1String("usb_interface")) continue;
+            const QString devtype = text(udev_device_get_devtype(device.get()));
+            if (devtype == QLatin1String("usb_device")) {
+                if (attribute(device.get(), "bDeviceClass").compare(QLatin1String("09"), Qt::CaseInsensitive) != 0)
+                    devices.append(makeDevice(device.get(), DeviceCategory::Other, QStringLiteral("usb-device")));
+                continue;
+            }
+            if (devtype != QLatin1String("usb_interface")) continue;
             if (matchesInterface(device.get(), "07"))
                 devices.append(makeDevice(device.get(), DeviceCategory::Printer, QStringLiteral("usb-printer")));
             if (matchesInterface(device.get(), "0b"))
