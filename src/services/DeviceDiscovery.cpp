@@ -1,6 +1,7 @@
 #include "DeviceDiscovery.h"
 
 #include <QCoreApplication>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
@@ -292,6 +293,45 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners)
             add(all, std::move(scanner));
         }
     }
+    QProcess virtualization;
+    virtualization.start(QStringLiteral("systemd-detect-virt"), {QStringLiteral("--vm")});
+    if (virtualization.waitForFinished(1200) && virtualization.exitStatus() == QProcess::NormalExit
+        && virtualization.exitCode() == 0) {
+        const QString type = QString::fromUtf8(virtualization.readAllStandardOutput()).trimmed().toLower();
+        if (!type.isEmpty()) {
+            HardwareDevice device;
+            device.id = QStringLiteral("system:virt");
+            device.category = DeviceCategory::Virtualization;
+            device.bus = QStringLiteral("system");
+            device.address = QStringLiteral("virt");
+            device.name = type;
+            device.capabilities.append(QStringLiteral("virt-") + type);
+            if (QFileInfo::exists(QStringLiteral("/dev/virtio-ports/org.qemu.guest_agent.0")))
+                device.capabilities.append(QStringLiteral("qemu-ga-port"));
+            if (QFileInfo::exists(QStringLiteral("/dev/virtio-ports/com.redhat.spice.0")))
+                device.capabilities.append(QStringLiteral("spice-port"));
+            add(all, std::move(device));
+        }
+    }
+    QDir powerDirectory(QStringLiteral("/sys/class/power_supply"));
+    for (const auto &entry : powerDirectory.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        QFile typeFile(powerDirectory.filePath(entry + QStringLiteral("/type")));
+        QFile scopeFile(powerDirectory.filePath(entry + QStringLiteral("/scope")));
+        if (!typeFile.open(QIODevice::ReadOnly) || QString::fromUtf8(typeFile.readAll()).trimmed() != QLatin1String("Battery")) continue;
+        QString scope;
+        if (scopeFile.open(QIODevice::ReadOnly)) scope = QString::fromUtf8(scopeFile.readAll()).trimmed();
+        if (scope.compare(QLatin1String("Device"), Qt::CaseInsensitive) == 0) continue;
+        HardwareDevice device;
+        device.id = QStringLiteral("system:power");
+        device.category = DeviceCategory::Power;
+        device.bus = QStringLiteral("power_supply");
+        device.address = entry;
+        device.name = QStringLiteral("Battery");
+        device.capabilities.append(QStringLiteral("battery"));
+        add(all, std::move(device));
+        break;
+    }
+
     QVector<HardwareDevice> result;
     QFile vendor(QStringLiteral("/sys/class/dmi/id/sys_vendor"));
     QString vendorName;
