@@ -320,7 +320,7 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners)
     if (!context) return {};
     QHash<QString, HardwareDevice> all;
     for (const char *subsystem : {"pci", "sound", "bluetooth", "video4linux", "input",
-                                  "thunderbolt", "usb", "net", "wwan", "acpi"}) {
+                                  "thunderbolt", "usb", "net", "wwan"}) {
         for (auto device : enumerateSubsystem(context.get(), subsystem))
             add(all, std::move(device));
     }
