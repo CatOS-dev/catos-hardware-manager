@@ -21,7 +21,7 @@ catos-branding (/usr/share/pixmaps/catos-logo.svg and the catos-logo icon).
 The hardware service merges PCI/USB CHWD profiles with physical sysfs/udev
 devices. CHWD is optional for discovering other hardware: Bluetooth, audio,
 cameras, printers, scanners detected by SANE, tablets, gamepads, Thunderbolt,
-smart-card readers, mobile broadband and system firmware.
+smart-card readers, mobile broadband.
 
 ## Profile rules
 
@@ -92,18 +92,6 @@ attempts to reinstall removed configurations and verifies their recorded state.
 It does not claim atomic rollback or restore partially executed hook effects.
 The application shows completed, failed and unexecuted steps, saves the last
 operation locally, and refreshes actual state so retry targets remaining work.
-
-## Firmware
-
-The firmware page uses the installed `fwupdmgr` client and its authorization
-mechanism. Install firmware support, check for updates to refresh metadata and
-list real devices, then review available versions and confirm a device update.
-The client retains its device safety checks. Automatic history upload and
-remote-enablement prompts are disabled. Remotes must already be configured.
-Some devices stage updates for a restart; the application does not reboot the
-machine automatically. Recheck the version after the required restart.
-Device-specific interactive requests that require a terminal can fail and are
-shown in the operation details. No firmware is flashed by the automated tests.
 
 ## Verification
 

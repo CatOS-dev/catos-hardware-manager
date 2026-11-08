@@ -14,7 +14,6 @@ class QFrame;
 class DevicesPage;
 class InstalledProfilesPage;
 class ProfileCatalogPage;
-class FirmwarePage;
 class QCloseEvent;
 template <typename T> class QFutureWatcher;
 
@@ -47,7 +46,6 @@ private:
     DevicesPage *devices_ = nullptr;
     InstalledProfilesPage *installed_ = nullptr;
     ProfileCatalogPage *catalog_ = nullptr;
-    FirmwarePage *firmware_ = nullptr;
     QFrame *footer_ = nullptr;
     QLabel *pending_ = nullptr;
     QPushButton *discard_ = nullptr;

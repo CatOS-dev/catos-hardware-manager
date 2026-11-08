@@ -234,19 +234,6 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate()
         for (auto device : enumerateSubsystem(context.get(), subsystem))
             add(all, std::move(device));
     }
-    // DMI identifies firmware-bearing systems; it is a real firmware device
-    // category, not an invented peripheral or a claim that an update exists.
-    QFile product(QStringLiteral("/sys/class/dmi/id/product_name"));
-    if (product.open(QIODevice::ReadOnly)) {
-        HardwareDevice firmware;
-        firmware.id = QStringLiteral("system:firmware");
-        firmware.category = DeviceCategory::Firmware;
-        firmware.bus = QStringLiteral("dmi");
-        firmware.address = QStringLiteral("DMI");
-        firmware.name = QString::fromUtf8(product.readAll()).trimmed();
-        firmware.capabilities.append(QStringLiteral("firmware"));
-        add(all, std::move(firmware));
-    }
     // SANE can identify USB/network scanners for which no standard USB
     // interface class exists. Do not misclassify all imaging-class devices.
     QProcess scan;

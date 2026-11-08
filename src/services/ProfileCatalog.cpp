@@ -38,7 +38,6 @@ DeviceCategory category(const QString &name)
         {QStringLiteral("printer"), DeviceCategory::Printer},
         {QStringLiteral("scanner"), DeviceCategory::Scanner},
         {QStringLiteral("tablet"), DeviceCategory::Tablet},
-        {QStringLiteral("firmware"), DeviceCategory::Firmware},
         {QStringLiteral("thunderbolt"), DeviceCategory::Thunderbolt},
         {QStringLiteral("controller"), DeviceCategory::Controller},
         {QStringLiteral("wwan"), DeviceCategory::MobileBroadband},

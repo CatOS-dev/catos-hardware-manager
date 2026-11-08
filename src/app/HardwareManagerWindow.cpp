@@ -7,7 +7,6 @@
 #include "services/HardwareService.h"
 #include "services/HardwareMonitor.h"
 #include "services/DiagnosticReport.h"
-#include "pages/FirmwarePage.h"
 #include <QCloseEvent>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -68,8 +67,8 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     left->addWidget(branding);
     left->addSpacing(24);
 
-    const QStringList labels{tr("Hardware devices"), tr("Installed profiles"), tr("Profile catalog"), tr("Firmware updates")};
-    const QStringList icons{QStringLiteral("computer"), QStringLiteral("package"), QStringLiteral("layers"), QStringLiteral("computer")};
+    const QStringList labels{tr("Hardware devices"), tr("Installed profiles"), tr("Profile catalog")};
+    const QStringList icons{QStringLiteral("computer"), QStringLiteral("package"), QStringLiteral("layers")};
     for (int i = 0; i < labels.size(); ++i) {
         auto *button = new QPushButton(sidebar);
         button->setFlat(true);
@@ -119,11 +118,6 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     stack_->addWidget(devices_);
     stack_->addWidget(installed_);
     stack_->addWidget(catalog_);
-    firmware_ = new FirmwarePage(stack_);
-    stack_->addWidget(firmware_);
-    connect(firmware_, &FirmwarePage::refreshRequested, this, [this] {
-        selectProfile(QStringLiteral("support:firmware"), true);
-    });
     vertical->addWidget(stack_, 1);
 
     footer_ = new QFrame(right);
@@ -145,10 +139,6 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     apply_ = new QPushButton(tr("Apply"), footer_);
     connect(apply_, &QPushButton::clicked, this, [this] {
         if (!ready_) return;
-        if (firmware_->isBusy()) {
-            statusBar()->showMessage(tr("Wait for the current operation to finish before closing."));
-            return;
-        }
         applying_ = true;
         const ApplyResult result = ApplyDialog::execute(this, snapshot_, selection_);
         applying_ = false;
@@ -192,7 +182,7 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     debounce->setInterval(800);
     connect(monitor, &HardwareMonitor::changed, debounce, [debounce] { debounce->start(); });
     connect(debounce, &QTimer::timeout, this, [this, debounce] {
-        if (applying_ || firmware_->isBusy()) { debounce->start(); return; }
+        if (applying_) { debounce->start(); return; }
         refresh(true);
     });
     connect(devices_, &DevicesPage::refreshRequested, this, [this] { refresh(true); });
@@ -223,7 +213,7 @@ void HardwareManagerWindow::showPage(int index)
 void HardwareManagerWindow::refresh(bool keepSelection)
 {
     if (watcher_->isRunning()) { refreshQueued_ = true; return; }
-    if (applying_ || firmware_->isBusy()) return;
+    if (applying_) return;
     statusBar()->showMessage(tr("Refreshing hardware information…"));
     devices_->setEnabled(false);
     installed_->setEnabled(false);
@@ -239,7 +229,6 @@ void HardwareManagerWindow::showData()
     devices_->updateState(snapshot_, selection_);
     installed_->updateState(snapshot_, selection_);
     catalog_->updateState(snapshot_, selection_);
-    firmware_->updateState(snapshot_);
     updateFooter();
 }
 
@@ -275,7 +264,7 @@ void HardwareManagerWindow::selectRecommended()
 
 void HardwareManagerWindow::closeEvent(QCloseEvent *event)
 {
-    if (applying_ || firmware_->isBusy()) {
+    if (applying_) {
         event->ignore();
         statusBar()->showMessage(tr("Wait for the current operation to finish before closing."));
         return;

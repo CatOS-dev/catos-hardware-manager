@@ -54,7 +54,7 @@ void ProfileCatalogPage::rebuild()
     const QVector<DeviceCategory> categories{
         DeviceCategory::Graphics, DeviceCategory::Network, DeviceCategory::Audio,
         DeviceCategory::Bluetooth, DeviceCategory::Camera, DeviceCategory::Printer,
-        DeviceCategory::Scanner, DeviceCategory::Tablet, DeviceCategory::Firmware,
+        DeviceCategory::Scanner, DeviceCategory::Tablet,
         DeviceCategory::Thunderbolt, DeviceCategory::Controller, DeviceCategory::MobileBroadband,
         DeviceCategory::SmartCard, DeviceCategory::Other
     };
