@@ -42,6 +42,12 @@ Rules are loaded by the app and privileged executor. The executor validates
 selected IDs against the installed catalog and actual hardware; the GUI never
 supplies raw package commands.
 
+## Device support notes
+
+Fingerprint support installs fprintd and libfprint when a supported reader is detected.
+It does not modify PAM; enabling fingerprint login or sudo remains a desktop or user choice.
+Wireless and graphics firmware profiles install Arch `linux-firmware-*` files only; they do not flash device firmware.
+
 ## Transactions
 
 A checkbox only stages a change. The user confirms all changes before a
