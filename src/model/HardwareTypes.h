@@ -72,6 +72,8 @@ struct HardwareSnapshot {
     QVector<HardwareDevice> devices;
     QVector<HardwareProfile> profiles;
     QSet<QString> installedPackages;
+    QSet<QString> unsatisfiedPackages;
+    bool packageSatisfiabilityKnown = false;
     QSet<QString> enabledServices;
     QSet<QString> activeServices;
     QStringList warnings;

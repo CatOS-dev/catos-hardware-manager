@@ -79,6 +79,18 @@ void readService(const QString &name, HardwareSnapshot &snapshot)
     }
 }
 
+QSet<QString> unsatisfiedPackages(const QStringList &packages)
+{
+    QSet<QString> result;
+    if (packages.isEmpty()) return result;
+    QProcess process;
+    process.start(QStringLiteral("/usr/bin/pacman"), QStringList{QStringLiteral("-T"), QStringLiteral("--")} + packages);
+    if (!process.waitForStarted(6000) || !process.waitForFinished(20000)) return result;
+    for (const auto &name : QString::fromUtf8(process.readAllStandardOutput()).split(QLatin1Char('\n'), Qt::SkipEmptyParts))
+        result.insert(name.trimmed());
+    return result;
+}
+
 void addProfileToDevice(HardwareDevice &device, const QString &profileId)
 {
     if (!device.profileIds.contains(profileId)) device.profileIds.append(profileId);
@@ -238,6 +250,12 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram, ReadOptions o
         snapshot.error = error;
         return snapshot;
     }
+    QStringList packageNames;
+    for (const auto &profile : support)
+        for (const auto &package : profile.packages)
+            if (!packageNames.contains(package)) packageNames.append(package);
+    snapshot.unsatisfiedPackages = unsatisfiedPackages(packageNames);
+    snapshot.packageSatisfiabilityKnown = true;
     QSet<QString> serviceNames;
     for (const auto &profile : support)
         for (const auto &service : profile.services) serviceNames.insert(service);
@@ -262,8 +280,12 @@ void HardwareService::updateSupportState(HardwareProfile &profile, const Hardwar
     profile.conflictingPackages.clear();
     profile.disabledServices.clear();
     profile.inactiveServices.clear();
-    for (const auto &name : profile.packages)
-        if (!snapshot.installedPackages.contains(name)) profile.missingPackages.append(name);
+    for (const auto &name : profile.packages) {
+        const bool missing = snapshot.packageSatisfiabilityKnown
+            ? snapshot.unsatisfiedPackages.contains(name)
+            : !snapshot.installedPackages.contains(name);
+        if (missing) profile.missingPackages.append(name);
+    }
     for (const auto &name : profile.conflicts)
         if (snapshot.installedPackages.contains(name)) profile.conflictingPackages.append(name);
     for (const auto &name : profile.services) {
