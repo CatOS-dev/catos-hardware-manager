@@ -48,8 +48,10 @@ struct HardwareProfile {
     QString id;
     QString name;
     QString chineseName;
+    QString traditionalChineseName;
     QString description;
     QString chineseDescription;
+    QString traditionalChineseDescription;
     DeviceCategory category = DeviceCategory::Other;
     ProfileSource source = ProfileSource::Support;
     QStringList packages;

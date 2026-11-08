@@ -150,9 +150,13 @@ QVector<HardwareProfile> ProfileCatalog::load(const QString &directory, QString 
             if (!validPackage(profileName)) throw std::runtime_error("Invalid profile ID");
             profile.id = QStringLiteral("support:") + profileName;
             profile.name = field(root, "name");
-            profile.chineseName = field(root, "name_zh");
+            profile.chineseName = field(root, "name_zh_CN");
+            if (profile.chineseName.isEmpty()) profile.chineseName = field(root, "name_zh");
+            profile.traditionalChineseName = field(root, "name_zh_TW");
             profile.description = field(root, "description");
-            profile.chineseDescription = field(root, "description_zh");
+            profile.chineseDescription = field(root, "description_zh_CN");
+            if (profile.chineseDescription.isEmpty()) profile.chineseDescription = field(root, "description_zh");
+            profile.traditionalChineseDescription = field(root, "description_zh_TW");
             profile.category = category(field(root, "category"));
             profile.source = ProfileSource::Support;
             profile.discovery = root["discovery"] && root["discovery"].as<bool>();
