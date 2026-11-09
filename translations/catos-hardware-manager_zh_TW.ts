@@ -85,6 +85,89 @@
     </message>
   </context>
   <context>
+    <name>Cli</name>
+    <message>
+      <source>Warning: %1</source>
+      <translation>警告：%1</translation>
+    </message>
+    <message>
+      <source>No recommended changes.</source>
+      <translation>沒有推薦的更改。</translation>
+    </message>
+    <message>
+      <source>Recommended changes (--apply-recommended):</source>
+      <translation>推薦的更改（--apply-recommended）：</translation>
+    </message>
+    <message>
+      <source>Nothing to do.</source>
+      <translation>無需更改。</translation>
+    </message>
+    <message>
+      <source>The following changes will be applied:</source>
+      <translation>將應用以下更改：</translation>
+    </message>
+    <message>
+      <source>Not a terminal: pass --yes to apply without asking.</source>
+      <translation>當前不是終端：如需不經確認直接應用，請加上 --yes。</translation>
+    </message>
+    <message>
+      <source>Apply these changes? [y/N] </source>
+      <translation>應用這些更改嗎？[y/N] </translation>
+    </message>
+    <message>
+      <source>failed</source>
+      <translation>失敗</translation>
+    </message>
+    <message>
+      <source>Authorization was cancelled. Nothing was changed.</source>
+      <translation>已取消授權，未做任何更改。</translation>
+    </message>
+    <message>
+      <source>Some changes could not be applied.</source>
+      <translation>部分硬體配置未能完成。</translation>
+    </message>
+    <message>
+      <source>Details: /var/log/catos-hardware-manager/last-transaction.log</source>
+      <translation>詳情：/var/log/catos-hardware-manager/last-transaction.log</translation>
+    </message>
+    <message>
+      <source>Done.</source>
+      <translation>完成。</translation>
+    </message>
+    <message>
+      <source>Restart the computer to use the new drivers.</source>
+      <translation>請重啟電腦以使用新驅動。</translation>
+    </message>
+    <message>
+      <source>CatOS Hardware Manager</source>
+      <translation>CatOS 硬體管理器</translation>
+    </message>
+    <message>
+      <source>List devices, their status and recommended changes.</source>
+      <translation>列出裝置、狀態和推薦的更改。</translation>
+    </message>
+    <message>
+      <source>With --list: print JSON.</source>
+      <translation>與 --list 一起使用：輸出 JSON。</translation>
+    </message>
+    <message>
+      <source>Install recommended drivers and support components. Never removes an installed driver.</source>
+      <translation>安裝推薦的驅動和支援元件。不會移除已安裝的驅動。</translation>
+    </message>
+    <message>
+      <source>Do not ask for confirmation.</source>
+      <translation>不再詢問確認。</translation>
+    </message>
+    <message>
+      <source>Use either --list or --apply-recommended.</source>
+      <translation>請使用 --list 或 --apply-recommended 其中之一。</translation>
+    </message>
+    <message>
+      <source>Hardware query failed: %1</source>
+      <translation>硬體查詢失敗：%1</translation>
+    </message>
+  </context>
+  <context>
     <name>DeviceDiscovery</name>
     <message>
       <source>Thunderbolt / USB4 controller</source>
@@ -168,6 +251,14 @@
     <message>
       <source>Open power settings</source>
       <translation>開啟電源設定</translation>
+    </message>
+    <message>
+      <source>To run an application on the other GPU, choose "Run using dedicated graphics card" from its context menu in the launcher.</source>
+      <translation>如需讓程式使用另一塊顯示卡執行，請在啟動器中右鍵該程式，選擇“使用獨立顯示卡執行”。</translation>
+    </message>
+    <message>
+      <source>Manage Thunderbolt devices</source>
+      <translation>管理雷電裝置</translation>
     </message>
     <message>
       <source>Hardware Manager</source>
@@ -479,6 +570,14 @@
       <translation>正常</translation>
     </message>
     <message>
+      <source>Primary: %1</source>
+      <translation>主顯示卡：%1</translation>
+    </message>
+    <message>
+      <source>Primary GPU</source>
+      <translation>主顯示卡</translation>
+    </message>
+    <message>
       <source>Driver: %1</source>
       <translation>驅動：%1</translation>
     </message>
@@ -714,6 +813,89 @@
     <message>
       <source>No saved operation log.</source>
       <translation>沒有已儲存的操作日誌。</translation>
+    </message>
+  </context>
+  <context>
+    <name>ThunderboltDialog</name>
+    <message>
+      <source>Thunderbolt devices</source>
+      <translation>雷電裝置</translation>
+    </message>
+    <message>
+      <source>Device</source>
+      <translation>裝置</translation>
+    </message>
+    <message>
+      <source>Vendor</source>
+      <translation>廠商</translation>
+    </message>
+    <message>
+      <source>Status</source>
+      <translation>狀態</translation>
+    </message>
+    <message>
+      <source>Authorize</source>
+      <translation>授權</translation>
+    </message>
+    <message>
+      <source>Forget</source>
+      <translation>忘記</translation>
+    </message>
+    <message>
+      <source>Refresh</source>
+      <translation>重新整理</translation>
+    </message>
+    <message>
+      <source>Forget device</source>
+      <translation>忘記裝置</translation>
+    </message>
+    <message>
+      <source>Forget %1? It will need to be authorized again the next time it is connected.</source>
+      <translation>忘記 %1 嗎？下次連線時需要重新授權。</translation>
+    </message>
+    <message>
+      <source>Authorized</source>
+      <translation>已授權</translation>
+    </message>
+    <message>
+      <source>Connected, not authorized</source>
+      <translation>已連線，未授權</translation>
+    </message>
+    <message>
+      <source>Authorizing…</source>
+      <translation>正在授權…</translation>
+    </message>
+    <message>
+      <source>Authorization failed</source>
+      <translation>授權失敗</translation>
+    </message>
+    <message>
+      <source>Not connected</source>
+      <translation>未連線</translation>
+    </message>
+    <message>
+      <source> · remembered</source>
+      <translation> · 已記住</translation>
+    </message>
+    <message>
+      <source>Cannot reach the Thunderbolt service (boltd): %1</source>
+      <translation>無法連線雷電服務（boltd）：%1</translation>
+    </message>
+    <message>
+      <source>No Thunderbolt or USB4 peripherals are known.</source>
+      <translation>沒有已知的雷電或 USB4 外設。</translation>
+    </message>
+    <message>
+      <source>Authorize a peripheral to allow it access to the computer. Only authorize devices you trust.</source>
+      <translation>授權後外設即可訪問電腦。請只授權你信任的裝置。</translation>
+    </message>
+    <message>
+      <source>Waiting for the Thunderbolt service…</source>
+      <translation>正在等待雷電服務…</translation>
+    </message>
+    <message>
+      <source>The operation failed: %1</source>
+      <translation>操作失敗：%1</translation>
     </message>
   </context>
   <context>
