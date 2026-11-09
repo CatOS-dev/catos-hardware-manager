@@ -14,6 +14,9 @@
 #include <QPlainTextEdit>
 #include <QSaveFile>
 #include <QStatusBar>
+#include <QShortcut>
+#include <QKeySequence>
+#include <QLineEdit>
 #include "widgets/HardwareUi.h"
 
 #include <QApplication>
@@ -137,6 +140,23 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     footer_->hide();
     horizontal->addWidget(right, 1);
     setCentralWidget(root);
+
+    // Keyboard shortcuts. Dialogs close with Esc through QDialog already.
+    auto *refreshShortcut = new QShortcut(QKeySequence::Refresh, this);  // F5
+    connect(refreshShortcut, &QShortcut::activated, this, [this] { refresh(true); });
+    auto *searchShortcut = new QShortcut(QKeySequence::Find, this);  // Ctrl+F
+    connect(searchShortcut, &QShortcut::activated, this, [this] {
+        showPage(2);
+        catalog_->search()->setFocus(Qt::ShortcutFocusReason);
+        catalog_->search()->selectAll();
+    });
+    for (const auto &key : {QKeySequence(Qt::CTRL | Qt::Key_Return), QKeySequence(Qt::CTRL | Qt::Key_Enter)}) {
+        auto *applyShortcut = new QShortcut(key, this);
+        connect(applyShortcut, &QShortcut::activated, this, [this] {
+            if (footer_->isVisible() && apply_->isEnabled()) apply_->click();
+        });
+    }
+    apply_->setToolTip(tr("Apply (Ctrl+Enter)"));
 
     watcher_ = new QFutureWatcher<HardwareSnapshot>(this);
     connect(watcher_, &QFutureWatcher<HardwareSnapshot>::finished, this, [this] {
