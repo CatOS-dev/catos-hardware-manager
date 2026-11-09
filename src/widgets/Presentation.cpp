@@ -5,14 +5,9 @@
 #include <QCoreApplication>
 
 namespace {
-QString tr(const char *text)
-{
-    return QCoreApplication::translate("Presentation", text);
-}
-
 QString attention(const QString &reason)
 {
-    return tr("Needs attention: %1").arg(reason);
+    return QCoreApplication::translate("Presentation", "Needs attention: %1").arg(reason);
 }
 }
 
@@ -71,31 +66,31 @@ StatusText Presentation::deviceStatus(const HardwareDevice &device, const Hardwa
         recommendedDriverMissing = !groupInstalled;
     }
 
-    if (pending) return {tr("Changes pending"), StatusLevel::Pending};
+    if (pending) return {QCoreApplication::translate("Presentation", "Changes pending"), StatusLevel::Pending};
     if (device.capabilities.contains(QStringLiteral("fingerprint-unsupported")))
-        return {attention(tr("no open-source driver supports this reader yet")), StatusLevel::Attention};
+        return {attention(QCoreApplication::translate("Presentation", "no open-source driver supports this reader yet")), StatusLevel::Attention};
     if (driverExpected(device) && device.driver.isEmpty())
-        return {tr("Driver not found"), StatusLevel::Error};
+        return {QCoreApplication::translate("Presentation", "Driver not found"), StatusLevel::Error};
     if (recommendedDriverMissing)
-        return {attention(tr("recommended driver is not installed")), StatusLevel::Attention};
+        return {attention(QCoreApplication::translate("Presentation", "recommended driver is not installed")), StatusLevel::Attention};
     if (missingRecommended)
-        return {attention(tr("recommended support components are missing")), StatusLevel::Attention};
+        return {attention(QCoreApplication::translate("Presentation", "recommended support components are missing")), StatusLevel::Attention};
     if (serviceIssue)
-        return {attention(tr("a support service is not running")), StatusLevel::Attention};
-    return {tr("Normal"), StatusLevel::Ok};
+        return {attention(QCoreApplication::translate("Presentation", "a support service is not running")), StatusLevel::Attention};
+    return {QCoreApplication::translate("Presentation", "Normal"), StatusLevel::Ok};
 }
 
 QString Presentation::deviceSummary(const HardwareDevice &device, const HardwareSnapshot &snapshot)
 {
     QStringList parts;
-    if (!device.driver.isEmpty()) parts.append(tr("Driver: %1").arg(device.driver));
+    if (!device.driver.isEmpty()) parts.append(QCoreApplication::translate("Presentation", "Driver: %1").arg(device.driver));
     QStringList installed;
     for (const auto &id : device.profileIds) {
         const auto *profile = snapshot.profile(id);
         if (profile && profile->source == ProfileSource::Chwd && profile->installed)
             installed.append(HardwareUi::translatedName(*profile));
     }
-    if (!installed.isEmpty()) parts.append(tr("CHWD: %1").arg(installed.join(QStringLiteral(", "))));
+    if (!installed.isEmpty()) parts.append(QCoreApplication::translate("Presentation", "CHWD: %1").arg(installed.join(QStringLiteral(", "))));
     return parts.join(QStringLiteral(" · "));
 }
 
@@ -110,7 +105,7 @@ QString Presentation::deviceIdentifiers(const HardwareDevice &device)
 QString Presentation::profileName(const HardwareProfile &profile, bool recommended)
 {
     QString name = HardwareUi::translatedName(profile);
-    if (recommended) name += tr("  · Recommended");
+    if (recommended) name += QCoreApplication::translate("Presentation", "  · Recommended");
     return name;
 }
 
@@ -118,21 +113,21 @@ StatusText Presentation::profileState(const HardwareProfile &profile, const Prof
 {
     const bool selected = selection.selected(profile.id);
     if (profile.source == ProfileSource::Chwd) {
-        if (profile.installed && !selected) return {tr("Will be removed"), StatusLevel::Pending};
-        if (!profile.installed && selected) return {tr("Will be installed"), StatusLevel::Pending};
-        if (profile.installed) return {tr("Installed"), StatusLevel::Ok};
-        if (!profile.applicable) return {tr("Not applicable"), StatusLevel::Neutral};
-        return {tr("Not installed"), StatusLevel::Neutral};
+        if (profile.installed && !selected) return {QCoreApplication::translate("Presentation", "Will be removed"), StatusLevel::Pending};
+        if (!profile.installed && selected) return {QCoreApplication::translate("Presentation", "Will be installed"), StatusLevel::Pending};
+        if (profile.installed) return {QCoreApplication::translate("Presentation", "Installed"), StatusLevel::Ok};
+        if (!profile.applicable) return {QCoreApplication::translate("Presentation", "Not applicable"), StatusLevel::Neutral};
+        return {QCoreApplication::translate("Presentation", "Not installed"), StatusLevel::Neutral};
     }
-    if (!profile.applicable && profile.installed) return {tr("Installed; device disconnected"), StatusLevel::Neutral};
-    if (!profile.applicable) return {tr("Not applicable"), StatusLevel::Neutral};
+    if (!profile.applicable && profile.installed) return {QCoreApplication::translate("Presentation", "Installed; device disconnected"), StatusLevel::Neutral};
+    if (!profile.applicable) return {QCoreApplication::translate("Presentation", "Not applicable"), StatusLevel::Neutral};
     if (!profile.conflictingPackages.isEmpty())
-        return {tr("Managed by %1").arg(profile.conflictingPackages.join(QStringLiteral(", "))), StatusLevel::Neutral};
-    if (profile.ready) return {tr("Ready"), StatusLevel::Ok};
-    if (selected) return {tr("Will be installed"), StatusLevel::Pending};
-    if (profile.missingPackages.isEmpty()) return {tr("Service not running"), StatusLevel::Attention};
-    if (profile.recommended) return {tr("Missing components"), StatusLevel::Attention};
-    return {tr("Not installed"), StatusLevel::Neutral};
+        return {QCoreApplication::translate("Presentation", "Managed by %1").arg(profile.conflictingPackages.join(QStringLiteral(", "))), StatusLevel::Neutral};
+    if (profile.ready) return {QCoreApplication::translate("Presentation", "Ready"), StatusLevel::Ok};
+    if (selected) return {QCoreApplication::translate("Presentation", "Will be installed"), StatusLevel::Pending};
+    if (profile.missingPackages.isEmpty()) return {QCoreApplication::translate("Presentation", "Service not running"), StatusLevel::Attention};
+    if (profile.recommended) return {QCoreApplication::translate("Presentation", "Missing components"), StatusLevel::Attention};
+    return {QCoreApplication::translate("Presentation", "Not installed"), StatusLevel::Neutral};
 }
 
 bool Presentation::profileToggleable(const HardwareProfile &profile)
