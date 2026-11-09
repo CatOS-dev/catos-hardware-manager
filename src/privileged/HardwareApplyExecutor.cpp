@@ -64,23 +64,27 @@ int main(int argc, char **argv)
         transactionLog = &logFile;
         writeLog((QDateTime::currentDateTimeUtc().toString(Qt::ISODate) + QStringLiteral(" START\n")).toUtf8());
     }
+    // Every exit after the log was opened must end it with a verdict;
+    // a log without DONE or FAILED means the executor was interrupted.
+    const auto fail = [](int code, const char *record, const char *message) {
+        std::printf("%s\n", record);
+        std::fflush(stdout);
+        std::fprintf(stderr, "%s\n", message);
+        writeLog(QByteArray(record) + '\n');
+        writeLog(QByteArray("FAILED\n"));
+        return code;
+    };
     HardwareApplyRequest request;
-    if (!HardwareApplyRequestParser::read(application.arguments(), request)) return 2;
-    if (QFileInfo::exists(QStringLiteral("/var/lib/pacman/db.lck"))) {
-        std::fprintf(stderr, "ERROR|package-manager|locked\n");
-        writeLog(QByteArray("ERROR|package-manager|locked\n"));
-        return 4;
-    }
+    if (!HardwareApplyRequestParser::read(application.arguments(), request))
+        return fail(2, "ERROR|request|invalid", "Invalid request.");
+    if (QFileInfo::exists(QStringLiteral("/var/lib/pacman/db.lck")))
+        return fail(4, "ERROR|package-manager|locked", "Another package manager is running.");
 
     const HardwareSnapshot before = HardwareService::read(QStringLiteral("/usr/bin/chwd"), ReadOptions{false});
-    if (!before.isValid()) {
-        std::fprintf(stderr, "Unable to query hardware profile state.\n");
-        return 3;
-    }
-    if (!HardwareApplyRequestParser::validate(request, before)) {
-        std::fprintf(stderr, "Hardware state or supported profiles have changed. Refresh and review again.\n");
-        return 3;
-    }
+    if (!before.isValid())
+        return fail(3, "ERROR|state|initial|invalid", "Unable to query hardware profile state.");
+    if (!HardwareApplyRequestParser::validate(request, before))
+        return fail(3, "ERROR|state|changed", "Hardware state or supported profiles have changed. Refresh and review again.");
 
     const bool ok = HardwareTransaction::apply(before, request.remove, request.install, request.support,
         execute, [] { return HardwareService::read(QStringLiteral("/usr/bin/chwd"), ReadOptions{false}); },
