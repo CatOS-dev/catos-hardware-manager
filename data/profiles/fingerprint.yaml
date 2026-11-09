@@ -3,8 +3,10 @@
 id: fingerprint
 name: Fingerprint reader support
 name_zh: 指纹识别支持
+name_zh_TW: 指紋識別支援
 description: fprintd and libfprint
 description_zh: fprintd 与 libfprint 指纹服务
+description_zh_TW: fprintd 與 libfprint 指紋服務
 category: fingerprint
 recommended: true
 packages: [fprintd]

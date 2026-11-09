@@ -1,8 +1,10 @@
 id: fw-radeon
 name: Radeon firmware files
 name_zh: Radeon 显卡固件文件
+name_zh_TW: Radeon 顯示卡韌體檔案
 description: linux-firmware-radeon for Radeon devices
 description_zh: Radeon 显卡的 linux-firmware-radeon
+description_zh_TW: Radeon 顯示卡的 linux-firmware-radeon
 category: graphics
 recommended: true
 systemManaged: true

@@ -1,8 +1,10 @@
 id: printer
 name: USB printing support
 name_zh: USB 打印支持
+name_zh_TW: USB 列印支援
 description: CUPS and IPP over USB
 description_zh: CUPS 与 IPP over USB
+description_zh_TW: CUPS 與 IPP over USB
 category: printer
 packages: [cups, ipp-usb]
 services: [cups.service]

@@ -1,8 +1,10 @@
 id: bluetooth
 name: Bluetooth support
 name_zh: 蓝牙支持
+name_zh_TW: 藍牙支援
 description: BlueZ and Bluetooth service
 description_zh: BlueZ 与蓝牙服务
+description_zh_TW: BlueZ 與藍牙服務
 category: bluetooth
 recommended: true
 packages: [bluez, bluez-utils]

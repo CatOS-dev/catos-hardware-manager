@@ -1,8 +1,10 @@
 id: vm-virtualbox
 name: VirtualBox guest tools
 name_zh: VirtualBox 客户机工具
+name_zh_TW: VirtualBox 客戶機工具
 description: VirtualBox guest utilities
 description_zh: VirtualBox 客户机工具
+description_zh_TW: VirtualBox 客戶機工具
 category: virtualization
 recommended: true
 packages: [virtualbox-guest-utils]

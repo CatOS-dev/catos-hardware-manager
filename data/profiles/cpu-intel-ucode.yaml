@@ -1,8 +1,10 @@
 id: cpu-intel-ucode
 name: Intel CPU microcode
 name_zh: Intel CPU 微码
+name_zh_TW: Intel CPU 微碼
 description: Intel processor microcode updates
 description_zh: Intel 处理器微码更新
+description_zh_TW: Intel 處理器微碼更新
 category: cpu
 recommended: true
 packages: [intel-ucode]

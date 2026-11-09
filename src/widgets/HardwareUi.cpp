@@ -234,16 +234,51 @@ QWidget *HardwareUi::header(const QString &title, QPushButton *action, QWidget *
     return widget;
 }
 
+HardwareUi::ChineseScript HardwareUi::chineseScriptFor(const QStringList &uiLanguages)
+{
+    for (const auto &name : uiLanguages) {
+        const QLocale locale(name);
+        if (locale.language() == QLocale::English) return ChineseScript::None;
+        if (locale.language() != QLocale::Chinese) continue;
+        const bool traditional = locale.script() == QLocale::TraditionalChineseScript
+            || locale.territory() == QLocale::Taiwan || locale.territory() == QLocale::HongKong
+            || locale.territory() == QLocale::Macao;
+        return traditional ? ChineseScript::Traditional : ChineseScript::Simplified;
+    }
+    return ChineseScript::None;
+}
+
+HardwareUi::ChineseScript HardwareUi::preferredChinese()
+{
+    static const ChineseScript script = chineseScriptFor(QLocale::system().uiLanguages());
+    return script;
+}
+
+namespace {
+QString localized(const QString &english, const QString &simplified, const QString &traditional)
+{
+    switch (HardwareUi::preferredChinese()) {
+    case HardwareUi::ChineseScript::Traditional:
+        if (!traditional.isEmpty()) return traditional;
+        [[fallthrough]];
+    case HardwareUi::ChineseScript::Simplified:
+        if (!simplified.isEmpty()) return simplified;
+        [[fallthrough]];
+    case HardwareUi::ChineseScript::None:
+        break;
+    }
+    return english;
+}
+}
+
 QString HardwareUi::translatedName(const HardwareProfile &profile)
 {
-    return QLocale::system().language() == QLocale::Chinese && !profile.chineseName.isEmpty()
-        ? profile.chineseName : profile.name;
+    return localized(profile.name, profile.chineseName, profile.traditionalChineseName);
 }
 
 QString HardwareUi::translatedDescription(const HardwareProfile &profile)
 {
-    return QLocale::system().language() == QLocale::Chinese && !profile.chineseDescription.isEmpty()
-        ? profile.chineseDescription : profile.description;
+    return localized(profile.description, profile.chineseDescription, profile.traditionalChineseDescription);
 }
 
 SymbolLabel::SymbolLabel(const QString &name, int size, QWidget *parent)

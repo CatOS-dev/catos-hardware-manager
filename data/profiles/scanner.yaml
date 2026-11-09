@@ -1,8 +1,10 @@
 id: scanner
 name: Scanner support
 name_zh: 扫描仪支持
+name_zh_TW: 掃描器支援
 description: SANE and AirScan
 description_zh: SANE 与 AirScan 支持
+description_zh_TW: SANE 與 AirScan 支援
 category: scanner
 discovery: true
 packages: [sane, sane-airscan]

@@ -1,8 +1,10 @@
 id: audio
 name: Desktop audio support
 name_zh: 桌面音频支持
+name_zh_TW: 桌面音訊支援
 description: PipeWire and ALSA UCM
 description_zh: PipeWire 与 ALSA UCM 配置
+description_zh_TW: PipeWire 與 ALSA UCM 配置
 category: audio
 packages: [pipewire-audio, wireplumber, alsa-ucm-conf]
 match:

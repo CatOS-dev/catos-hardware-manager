@@ -246,6 +246,9 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram, ReadOptions o
                 "Mesa (OpenGL), vulkan-swrast (software Vulkan), xf86-video-vesa (VESA driver)");
             profile.chineseDescription = QStringLiteral(
                 "Mesa（OpenGL）、vulkan-swrast（软件 Vulkan）、xf86-video-vesa（VESA 驱动）");
+            profile.traditionalChineseName = QStringLiteral("Mesa + 軟體 Vulkan + VESA");
+            profile.traditionalChineseDescription = QStringLiteral(
+                "Mesa（OpenGL）、vulkan-swrast（軟體 Vulkan）、xf86-video-vesa（VESA 驅動程式）");
         }
         profile.packages = strings(item.value(QStringLiteral("packages")).toArray());
         profile.conflictGroup = item.value(QStringLiteral("conflictGroup")).toString();

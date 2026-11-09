@@ -1,8 +1,10 @@
 id: fw-mediatek
 name: MediaTek wireless firmware files
 name_zh: MediaTek 无线网卡固件文件
+name_zh_TW: MediaTek 無線網絡卡韌體檔案
 description: linux-firmware-mediatek for MediaTek wireless devices
 description_zh: MediaTek 无线设备的 linux-firmware-mediatek
+description_zh_TW: MediaTek 無線裝置的 linux-firmware-mediatek
 category: network
 recommended: true
 systemManaged: true

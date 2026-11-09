@@ -1,8 +1,10 @@
 id: audio-sof
 name: Intel SOF firmware
 name_zh: Intel SOF 音频固件
+name_zh_TW: Intel SOF 音訊韌體
 description: Intel Sound Open Firmware
 description_zh: Intel Sound Open Firmware 固件
+description_zh_TW: Intel Sound Open Firmware 韌體
 category: audio
 recommended: true
 packages: [sof-firmware]

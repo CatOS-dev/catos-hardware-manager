@@ -1,8 +1,10 @@
 id: fw-realtek-bt
 name: Realtek Bluetooth firmware files
 name_zh: Realtek 蓝牙固件文件
+name_zh_TW: Realtek 藍牙韌體檔案
 description: linux-firmware-realtek for Realtek Bluetooth devices
 description_zh: Realtek 蓝牙设备的 linux-firmware-realtek
+description_zh_TW: Realtek 藍牙裝置的 linux-firmware-realtek
 category: bluetooth
 recommended: true
 systemManaged: true

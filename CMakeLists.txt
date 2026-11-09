@@ -64,7 +64,7 @@ qt_add_executable(catos-hardware-manager src/app/Main.cpp)
 target_link_libraries(catos-hardware-manager PRIVATE catos-hardware-ui)
 
 qt_add_lrelease(catos-hardware-manager
-    TS_FILES translations/catos-hardware-manager_zh_CN.ts
+    TS_FILES translations/catos-hardware-manager_zh_CN.ts translations/catos-hardware-manager_zh_TW.ts
     QM_FILES_OUTPUT_VARIABLE QM_FILES
 )
 

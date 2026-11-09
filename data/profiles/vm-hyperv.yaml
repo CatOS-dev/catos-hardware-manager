@@ -1,8 +1,10 @@
 id: vm-hyperv
 name: Hyper-V guest tools
 name_zh: Hyper-V 客户机工具
+name_zh_TW: Hyper-V 客戶機工具
 description: Hyper-V integration services
 description_zh: Hyper-V 集成服务
+description_zh_TW: Hyper-V 整合服務
 category: virtualization
 recommended: true
 packages: [hyperv]

@@ -1,8 +1,10 @@
 id: vm-spice
 name: SPICE guest integration
 name_zh: SPICE 客户机集成
+name_zh_TW: SPICE 客戶機整合
 description: SPICE agent for clipboard and display integration
 description_zh: 用于剪贴板和显示集成的 SPICE 代理
+description_zh_TW: 用於剪貼簿和顯示整合的 SPICE 代理
 category: virtualization
 recommended: true
 packages: [spice-vdagent]

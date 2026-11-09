@@ -21,15 +21,14 @@ int main(int argc, char **argv)
                           QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
         app.installTranslator(&qtTranslator);
     QTranslator translator;
-    if (QLocale::system().language() == QLocale::Chinese) {
+    const auto script = HardwareUi::preferredChinese();
+    if (script != HardwareUi::ChineseScript::None) {
+        const QString file = script == HardwareUi::ChineseScript::Traditional
+            ? QStringLiteral("catos-hardware-manager_zh_TW") : QStringLiteral("catos-hardware-manager_zh_CN");
         const QString bin = QCoreApplication::applicationDirPath();
-        const QStringList directories{
-            bin,
-            bin + QStringLiteral("/translations"),
-            QDir::cleanPath(bin + QStringLiteral("/../share/catos-hardware-manager/translations"))
-        };
-        for (const auto &dir : directories) {
-            if (translator.load(QStringLiteral("catos-hardware-manager_zh_CN"), dir)) {
+        for (const auto &dir : {bin, bin + QStringLiteral("/translations"),
+                                QDir::cleanPath(bin + QStringLiteral("/../share/catos-hardware-manager/translations"))}) {
+            if (translator.load(file, dir)) {
                 app.installTranslator(&translator);
                 break;
             }

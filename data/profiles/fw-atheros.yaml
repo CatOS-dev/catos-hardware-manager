@@ -1,8 +1,10 @@
 id: fw-atheros
 name: Qualcomm Atheros firmware files
 name_zh: Qualcomm Atheros 无线网卡固件文件
+name_zh_TW: Qualcomm Atheros 無線網絡卡韌體檔案
 description: linux-firmware-atheros for Atheros wireless devices
 description_zh: Atheros 无线设备的 linux-firmware-atheros
+description_zh_TW: Atheros 無線裝置的 linux-firmware-atheros
 category: network
 recommended: true
 systemManaged: true

@@ -1,8 +1,10 @@
 id: vm-vmware
 name: VMware guest tools
 name_zh: VMware 客户机工具
+name_zh_TW: VMware 客戶機工具
 description: open-vm-tools for VMware guests
 description_zh: VMware 客户机的 open-vm-tools
+description_zh_TW: VMware 客戶機的 open-vm-tools
 category: virtualization
 recommended: true
 packages: [open-vm-tools]

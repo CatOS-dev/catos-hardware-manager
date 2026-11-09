@@ -1,8 +1,10 @@
 id: wwan
 name: Mobile broadband support
 name_zh: 移动宽带支持
+name_zh_TW: 移動寬頻支援
 description: ModemManager and USB mode switching
 description_zh: ModemManager 与 USB 模式切换
+description_zh_TW: ModemManager 與 USB 模式切換
 category: wwan
 recommended: true
 packages: [modemmanager, usb_modeswitch]

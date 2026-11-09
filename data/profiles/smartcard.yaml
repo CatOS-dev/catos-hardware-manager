@@ -1,8 +1,10 @@
 id: smartcard
 name: Smart card support
 name_zh: 智能卡支持
+name_zh_TW: 智慧卡支援
 description: PC/SC and CCID reader support
 description_zh: PC/SC 与 CCID 读卡器支持
+description_zh_TW: PC/SC 與 CCID 讀卡器支援
 category: smartcard
 recommended: true
 packages: [pcsclite, ccid]

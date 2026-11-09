@@ -1,8 +1,10 @@
 id: camera
 name: Camera support
 name_zh: 摄像头支持
+name_zh_TW: 攝像頭支援
 description: V4L2 camera utilities
 description_zh: V4L2 摄像头支持工具
+description_zh_TW: V4L2 攝像頭支援工具
 category: camera
 packages: [v4l-utils]
 match:

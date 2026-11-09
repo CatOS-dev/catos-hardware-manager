@@ -1,8 +1,10 @@
 id: camera-mipi
 name: MIPI camera userspace
 name_zh: MIPI 摄像头用户态支持
+name_zh_TW: MIPI 攝像頭使用者態支援
 description: libcamera userspace stack
 description_zh: libcamera 用户态管线
+description_zh_TW: libcamera 使用者態管線
 category: camera
 packages: [libcamera]
 match:

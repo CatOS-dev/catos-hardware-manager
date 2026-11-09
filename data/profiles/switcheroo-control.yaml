@@ -1,8 +1,10 @@
 id: switcheroo-control
 name: GPU switching support
 name_zh: 显卡切换支持
+name_zh_TW: 顯示卡切換支援
 description: switcheroo-control for hybrid graphics laptops
 description_zh: 混合显卡笔记本的 switcheroo-control
+description_zh_TW: 混合顯示卡筆記本的 switcheroo-control
 category: graphics
 recommended: true
 packages: [switcheroo-control]

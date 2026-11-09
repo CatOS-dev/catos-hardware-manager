@@ -1,8 +1,10 @@
 id: controller
 name: Game controller support
 name_zh: 游戏手柄支持
+name_zh_TW: 遊戲手柄支援
 description: Steam controller device rules
 description_zh: Steam 手柄设备规则
+description_zh_TW: Steam 手柄裝置規則
 category: controller
 packages: [steam-devices]
 match:

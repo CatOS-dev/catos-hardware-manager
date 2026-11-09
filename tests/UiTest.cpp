@@ -452,6 +452,18 @@ private slots:
         ApplyConfirmation dialog(snapshot, selection, false);
         QVERIFY(dialog.notes().join(QLatin1Char('\n')).contains(QStringLiteral("generic kernel driver")));
     }
+
+    void chineseVariantFollowsLanguageOrder()
+    {
+        using S = HardwareUi::ChineseScript;
+        QCOMPARE(HardwareUi::chineseScriptFor({QStringLiteral("zh-CN")}), S::Simplified);
+        QCOMPARE(HardwareUi::chineseScriptFor({QStringLiteral("zh-TW")}), S::Traditional);
+        QCOMPARE(HardwareUi::chineseScriptFor({QStringLiteral("zh-Hant-HK")}), S::Traditional);
+        // LANGUAGE=en:zh_CN prefers English.
+        QCOMPARE(HardwareUi::chineseScriptFor({QStringLiteral("en-US"), QStringLiteral("zh-CN")}), S::None);
+        // LANGUAGE=de:zh_TW: no German translation, so Traditional Chinese.
+        QCOMPARE(HardwareUi::chineseScriptFor({QStringLiteral("de-DE"), QStringLiteral("zh-TW")}), S::Traditional);
+    }
 };
 
 QTEST_MAIN(UiTest)

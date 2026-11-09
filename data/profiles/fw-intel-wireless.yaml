@@ -1,8 +1,10 @@
 id: fw-intel-wireless
 name: Intel wireless firmware files
 name_zh: Intel 无线网卡固件文件
+name_zh_TW: Intel 無線網絡卡韌體檔案
 description: linux-firmware-intel for Intel wireless devices
 description_zh: Intel 无线设备的 linux-firmware-intel
+description_zh_TW: Intel 無線裝置的 linux-firmware-intel
 category: network
 recommended: true
 systemManaged: true

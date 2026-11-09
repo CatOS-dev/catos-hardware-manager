@@ -1,8 +1,10 @@
 id: fw-amdgpu
 name: AMD graphics firmware files
 name_zh: AMD 显卡固件文件
+name_zh_TW: AMD 顯示卡韌體檔案
 description: linux-firmware-amdgpu for AMD graphics devices
 description_zh: AMD 显卡的 linux-firmware-amdgpu
+description_zh_TW: AMD 顯示卡的 linux-firmware-amdgpu
 category: graphics
 recommended: true
 systemManaged: true

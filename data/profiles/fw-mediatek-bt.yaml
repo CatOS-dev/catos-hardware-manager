@@ -1,8 +1,10 @@
 id: fw-mediatek-bt
 name: MediaTek Bluetooth firmware files
 name_zh: MediaTek 蓝牙固件文件
+name_zh_TW: MediaTek 藍牙韌體檔案
 description: linux-firmware-mediatek for MediaTek Bluetooth devices
 description_zh: MediaTek 蓝牙设备的 linux-firmware-mediatek
+description_zh_TW: MediaTek 藍牙裝置的 linux-firmware-mediatek
 category: bluetooth
 recommended: true
 systemManaged: true

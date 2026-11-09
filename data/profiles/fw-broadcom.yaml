@@ -1,8 +1,10 @@
 id: fw-broadcom
 name: Broadcom wireless firmware files
 name_zh: Broadcom 无线网卡固件文件
+name_zh_TW: Broadcom 無線網絡卡韌體檔案
 description: linux-firmware-broadcom for Broadcom wireless devices
 description_zh: Broadcom 无线设备的 linux-firmware-broadcom
+description_zh_TW: Broadcom 無線裝置的 linux-firmware-broadcom
 category: network
 recommended: true
 systemManaged: true

@@ -35,6 +35,11 @@ QLabel *heading(const QString &text, QWidget *parent, int extraPoints = 0);
 void clear(QLayout *layout);
 void separator(QVBoxLayout *layout, QWidget *parent);
 QWidget *header(const QString &title, QPushButton *action, QWidget *parent);
+// Which Chinese variant the user prefers, judged from the UI language list
+// in order (LANGUAGE first), so "en:zh_CN" stays English.
+enum class ChineseScript { None, Simplified, Traditional };
+ChineseScript chineseScriptFor(const QStringList &uiLanguages);
+ChineseScript preferredChinese();
 QString translatedName(const HardwareProfile &profile);
 QString translatedDescription(const HardwareProfile &profile);
 }

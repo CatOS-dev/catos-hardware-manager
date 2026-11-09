@@ -1,8 +1,10 @@
 id: vm-qemu
 name: QEMU guest agent
 name_zh: QEMU 客户机代理
+name_zh_TW: QEMU 客戶機代理
 description: qemu-guest-agent for virtual machines
 description_zh: 虚拟机 qemu-guest-agent
+description_zh_TW: 虛擬機器 qemu-guest-agent
 category: virtualization
 recommended: true
 packages: [qemu-guest-agent]

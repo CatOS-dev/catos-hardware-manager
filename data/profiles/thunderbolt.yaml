@@ -1,8 +1,10 @@
 id: thunderbolt
 name: Thunderbolt device authorization
 name_zh: 雷电设备授权
+name_zh_TW: 雷電裝置授權
 description: bolt device authorization
 description_zh: bolt 设备授权服务
+description_zh_TW: bolt 裝置授權服務
 category: thunderbolt
 packages: [bolt]
 match:
