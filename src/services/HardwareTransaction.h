@@ -4,6 +4,8 @@
 #include <functional>
 
 namespace HardwareTransaction {
+// snapper is installed and has at least one configuration.
+bool snapshotsAvailable();
 using Runner = std::function<bool(const QString &, const QStringList &)>;
 using Reader = std::function<HardwareSnapshot()>;
 using LineSink = std::function<void(const QString &)>;

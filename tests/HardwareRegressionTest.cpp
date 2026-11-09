@@ -1,4 +1,5 @@
 #include "model/ProfileSelection.h"
+#include "services/ApplyPreflight.h"
 #include "services/DiagnosticReport.h"
 #include "services/HardwareService.h"
 #include "services/HardwareTransaction.h"
@@ -392,6 +393,46 @@ private slots:
             output.write(file.section(QLatin1Char('='), 1).toUtf8());
         }
         QCOMPARE(int(HardwareService::microcodeBoot(root.path(), QStringLiteral("amd-ucode"))), expected);
+    }
+    void preflightFindsKernelsWithoutHeaders()
+    {
+        QTemporaryDir root;
+        const auto touch = [&root](const QString &path) {
+            QDir().mkpath(QFileInfo(root.filePath(path)).absolutePath());
+            QFile file(root.filePath(path));
+            QVERIFY(file.open(QIODevice::WriteOnly));
+        };
+        touch(QStringLiteral("usr/lib/modules/6.17.1-arch1-1/vmlinuz"));
+        QDir().mkpath(root.filePath(QStringLiteral("usr/lib/modules/6.17.1-arch1-1/build")));
+        touch(QStringLiteral("usr/lib/modules/6.17.1-2-cachyos/vmlinuz"));
+        // Leftover of a removed kernel: no vmlinuz, never reported.
+        QDir().mkpath(root.filePath(QStringLiteral("usr/lib/modules/6.12.0-old/extramodules")));
+        QCOMPARE(Preflight::kernelsWithoutHeaders(root.path()), QStringList{QStringLiteral("6.17.1-2-cachyos")});
+    }
+    void preflightReadsSecureBootVariable()
+    {
+        QTemporaryDir root;
+        const QString path = root.filePath(QStringLiteral("sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-e0e8ef33ca8c"));
+        QVERIFY(!Preflight::secureBootEnabled(root.path()));
+        QDir().mkpath(QFileInfo(path).absolutePath());
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(QByteArray("\x06\x00\x00\x00\x01", 5));
+        file.close();
+        QVERIFY(Preflight::secureBootEnabled(root.path()));
+    }
+    void preflightCountsOnlyPackagesToInstall()
+    {
+        auto state = drivers();
+        state.profiles[1].packages = {QStringLiteral("nvidia-dkms"), QStringLiteral("nvidia-utils")};
+        HardwareProfile bt = bluetooth();
+        bt.packages = {QStringLiteral("bluez"), QStringLiteral("bluez-utils")};
+        bt.missingPackages = {QStringLiteral("bluez-utils")};
+        state.profiles.append(bt);
+        QCOMPARE(Preflight::packagesToInstall(state, {QStringLiteral("new")}, {bt.id}),
+                 QStringList({QStringLiteral("nvidia-dkms"), QStringLiteral("nvidia-utils"), QStringLiteral("bluez-utils")}));
+        QVERIFY(Preflight::needsDkms(state, {QStringLiteral("new")}));
+        QVERIFY(!Preflight::needsDkms(state, {}));
     }
 };
 QTEST_GUILESS_MAIN(HardwareRegressionTest)
