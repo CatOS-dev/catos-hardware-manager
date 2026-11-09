@@ -54,29 +54,23 @@ udev_device *parent(udev_device *dev)
 
 QStringList modulesForModalias(const QString &modalias)
 {
+    // modprobe uses the indexed modules.alias.bin and knows built-in modules,
+    // so a lookup costs a few milliseconds instead of a full alias scan.
+    if (modalias.isEmpty()) return {};
     static QHash<QString, QStringList> cache;
-    if (cache.contains(modalias)) return cache.value(modalias);
+    if (auto found = cache.constFind(modalias); found != cache.constEnd()) return *found;
     QStringList result;
-    QProcess uname;
-    uname.start(QStringLiteral("uname"), {QStringLiteral("-r")});
-    if (uname.waitForFinished(1000) && uname.exitCode() == 0) {
-        QFile aliases(QStringLiteral("/lib/modules/")
-                      + QString::fromUtf8(uname.readAllStandardOutput()).trimmed()
-                      + QStringLiteral("/modules.alias"));
-        if (aliases.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            const auto lines = QString::fromUtf8(aliases.readAll()).split(QLatin1Char('\n'));
-            for (const auto &line : lines) {
-                if (!line.startsWith(QLatin1String("alias "))) continue;
-                const auto fields = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-                if (fields.size() != 3) continue;
-                QString pattern = QRegularExpression::escape(fields[1]);
-                pattern.replace(QStringLiteral("\\*"), QStringLiteral(".*"));
-                pattern.replace(QStringLiteral("\\?"), QStringLiteral("."));
-                if (QRegularExpression(QStringLiteral("^") + pattern + QStringLiteral("$"),
-                                        QRegularExpression::CaseInsensitiveOption).match(modalias).hasMatch()
-                    && !result.contains(fields[2])) result.append(fields[2]);
-            }
+    QProcess modprobe;
+    modprobe.start(QStringLiteral("/usr/bin/modprobe"), {QStringLiteral("--resolve-alias"), modalias});
+    if (modprobe.waitForFinished(2000) && modprobe.exitStatus() == QProcess::NormalExit
+        && modprobe.exitCode() == 0) {
+        for (const auto &line : QString::fromUtf8(modprobe.readAllStandardOutput()).split(QLatin1Char('\n'), Qt::SkipEmptyParts)) {
+            const QString module = line.trimmed().replace(QLatin1Char('-'), QLatin1Char('_'));
+            if (!module.isEmpty() && !result.contains(module)) result.append(module);
         }
+    } else if (modprobe.state() != QProcess::NotRunning) {
+        modprobe.kill();
+        modprobe.waitForFinished(1000);
     }
     cache.insert(modalias, result);
     return result;
@@ -98,11 +92,47 @@ QString driverName(udev_device *dev)
     return {};
 }
 
+QString interfaceDriver(udev_device *usbDevice)
+{
+    // A usb_device is always bound to the generic "usb" driver. The driver
+    // that makes it work is bound to one of its interfaces.
+    auto *context = udev_device_get_udev(usbDevice);
+    const QString syspath = text(udev_device_get_syspath(usbDevice));
+    const QString prefix = text(udev_device_get_sysname(usbDevice)) + QLatin1Char(':');
+    const auto entries = QDir(syspath).entryList({prefix + QLatin1Char('*')},
+                                                 QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+    for (const auto &entry : entries) {
+        std::unique_ptr<udev_device, decltype(&udev_device_unref)> child(
+            udev_device_new_from_syspath(context, (syspath + QLatin1Char('/') + entry).toUtf8().constData()),
+            &udev_device_unref);
+        if (!child) continue;
+        const QString driver = driverName(child.get());
+        // usbfs means a userspace program (e.g. libfprint) claimed the interface.
+        if (!driver.isEmpty() && driver != QLatin1String("usbfs")) return driver;
+    }
+    return {};
+}
+
 QString boundDriver(udev_device *dev)
 {
-    // The driver belongs to the functional device being reported. Walking
-    // toward a hub or PCI bridge reports the controller driver instead.
-    return driverName(dev);
+    // Class nodes (hci0, video0, card0, input event nodes, net interfaces)
+    // never have a driver; the driver sits on the functional device above
+    // them. Stop at that functional device so a hub, bridge or controller
+    // driver is never reported for an unbound device.
+    for (auto *node = dev; node; node = udev_device_get_parent(node)) {
+        const QString subsystem = text(udev_device_get_subsystem(node));
+        if (subsystem == QLatin1String("usb")
+            && text(udev_device_get_devtype(node)) == QLatin1String("usb_device"))
+            return interfaceDriver(node);
+        const QString driver = driverName(node);
+        if (!driver.isEmpty()) return driver;
+        static const QStringList functional{
+            QStringLiteral("pci"), QStringLiteral("usb"), QStringLiteral("hid"), QStringLiteral("i2c"),
+            QStringLiteral("platform"), QStringLiteral("acpi"), QStringLiteral("thunderbolt"),
+            QStringLiteral("serio"), QStringLiteral("sdio"), QStringLiteral("mhi"), QStringLiteral("virtio")};
+        if (functional.contains(subsystem)) return {};
+    }
+    return {};
 }
 
 QString physicalKey(udev_device *dev)
@@ -131,6 +161,10 @@ HardwareDevice makeDevice(udev_device *dev, DeviceCategory category,
                                 property(physical, "MODALIAS"), attribute(physical, "modalias")});
     result.driver = boundDriver(dev);
     result.modules = modulesForModalias(result.modalias);
+    // A bound driver is a loaded module even when the alias index is
+    // unavailable (e.g. a kernel update replaced /usr/lib/modules).
+    const QString loaded = QString(result.driver).replace(QLatin1Char('-'), QLatin1Char('_'));
+    if (!loaded.isEmpty() && !result.modules.contains(loaded)) result.modules.append(loaded);
     result.name = preferred({property(dev, "ID_MODEL_FROM_DATABASE"), property(physical, "ID_MODEL_FROM_DATABASE"),
                              property(dev, "ID_MODEL"), property(physical, "ID_MODEL"),
                              attribute(physical, "product"), attribute(physical, "device"),
@@ -331,39 +365,53 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
         for (auto device : enumerateSubsystem(context.get(), subsystem, acpiHids))
             add(all, std::move(device));
     }
+    // The generic USB enumeration exists for devices no class driver
+    // describes (fingerprint readers use vendor-specific interfaces). A USB
+    // device that is already listed through one of its interfaces must not
+    // show up a second time once a support profile recategorises it.
+    QSet<QString> describedIds;
+    for (auto it = all.cbegin(); it != all.cend(); ++it)
+        if (!it->capabilities.contains(QStringLiteral("usb-device"))) describedIds.insert(it->id);
+    for (auto it = all.begin(); it != all.end();) {
+        if (it->category == DeviceCategory::Other && it->capabilities == QStringList{QStringLiteral("usb-device")}
+            && describedIds.contains(it->id))
+            it = all.erase(it);
+        else
+            ++it;
+    }
     // SANE can identify USB/network scanners for which no standard USB
     // interface class exists. Do not misclassify all imaging-class devices.
     if (scanners) {
-      QProcess scan;
-    auto environment = QProcessEnvironment::systemEnvironment();
-    environment.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));
-    scan.setProcessEnvironment(environment);
-    scan.start(QStringLiteral("scanimage"), {QStringLiteral("-L")});
-    const bool scannerStarted = scan.waitForStarted(1200);
-    const bool scannerFinished = scannerStarted && scan.waitForFinished(3500);
-    if (scannerStarted && !scannerFinished) {
-        scan.kill();
-        scan.waitForFinished();
-    }
-      if (scannerFinished && scan.exitStatus() == QProcess::NormalExit && scan.exitCode() == 0) {
-        const QString output = QString::fromUtf8(scan.readAllStandardOutput());
-        const QRegularExpression pattern(QStringLiteral("^device ['`][^']+' is a (.+)$"),
-                                         QRegularExpression::MultilineOption);
-        auto matches = pattern.globalMatch(output);
-        while (matches.hasNext()) {
-            const auto match = matches.next();
-            const QString line = match.captured(0);
-            if (line.contains(QStringLiteral("v4l:"), Qt::CaseInsensitive)) continue;
-            HardwareDevice scanner;
-            scanner.id = QStringLiteral("sane:") + line;
-            scanner.name = match.captured(1);
-            scanner.address = line.section(QLatin1Char('\''), 1, 1);
-            scanner.bus = QStringLiteral("sane");
-            scanner.category = DeviceCategory::Scanner;
-            scanner.capabilities.append(QStringLiteral("scanner"));
-            add(all, std::move(scanner));
+        QProcess scan;
+        auto environment = QProcessEnvironment::systemEnvironment();
+        environment.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));
+        scan.setProcessEnvironment(environment);
+        scan.start(QStringLiteral("scanimage"), {QStringLiteral("-L")});
+        const bool scannerStarted = scan.waitForStarted(1200);
+        const bool scannerFinished = scannerStarted && scan.waitForFinished(3500);
+        if (scannerStarted && !scannerFinished) {
+            scan.kill();
+            scan.waitForFinished();
         }
-      }
+        if (scannerFinished && scan.exitStatus() == QProcess::NormalExit && scan.exitCode() == 0) {
+            const QString output = QString::fromUtf8(scan.readAllStandardOutput());
+            const QRegularExpression pattern(QStringLiteral("^device ['`][^']+' is a (.+)$"),
+                                             QRegularExpression::MultilineOption);
+            auto matches = pattern.globalMatch(output);
+            while (matches.hasNext()) {
+                const auto match = matches.next();
+                const QString line = match.captured(0);
+                if (line.contains(QStringLiteral("v4l:"), Qt::CaseInsensitive)) continue;
+                HardwareDevice scanner;
+                scanner.id = QStringLiteral("sane:") + line;
+                scanner.name = match.captured(1);
+                scanner.address = line.section(QLatin1Char('\''), 1, 1);
+                scanner.bus = QStringLiteral("sane");
+                scanner.category = DeviceCategory::Scanner;
+                scanner.capabilities.append(QStringLiteral("scanner"));
+                add(all, std::move(scanner));
+            }
+        }
     }
     int graphicsCount = 0;
     for (auto it = all.cbegin(); it != all.cend(); ++it)
