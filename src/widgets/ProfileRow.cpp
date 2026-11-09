@@ -1,17 +1,20 @@
 #include "ProfileRow.h"
 
 #include "HardwareUi.h"
+#include "Presentation.h"
 
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QSignalBlocker>
 #include <QToolButton>
 #include <QVBoxLayout>
 
 ProfileRow::ProfileRow(const HardwareProfile &profile, const ProfileSelection &selection,
                        bool recommended, QWidget *parent)
-    : QWidget(parent)
+    : QWidget(parent), profileId_(profile.id)
 {
+    setProperty("rowKey", profile.id);
     auto *outer = new QVBoxLayout(this);
     outer->setContentsMargins(0, 0, 0, 0);
     outer->setSpacing(0);
@@ -21,88 +24,83 @@ ProfileRow::ProfileRow(const HardwareProfile &profile, const ProfileSelection &s
     line->setSpacing(12);
     auto *text = new QVBoxLayout;
     text->setSpacing(5);
-    QString name = HardwareUi::translatedName(profile);
-    if (recommended) name += tr("  · Recommended");
-    text->addWidget(HardwareUi::heading(name, summary));
-    const QString description = HardwareUi::translatedDescription(profile);
-    if (!description.isEmpty())
-        text->addWidget(HardwareUi::muted(description, summary, true));
-    QString state;
-    if (profile.source == ProfileSource::Support) {
-        if (!profile.applicable && profile.installed) state = tr("Installed; device disconnected");
-        else if (!profile.applicable) state = tr("Not applicable");
-        else if (profile.ready) state = tr("System support ready");
-        else if (selection.selected(profile.id)) state = tr("Pending installation");
-        else if (profile.installed) state = tr("Service needs attention");
-        else state = tr("Missing components");
-    } else {
-        if (profile.installed) state = tr("Installed");
-        else if (!profile.applicable) state = tr("Not applicable");
-    }
-    if (!state.isEmpty()) text->addWidget(HardwareUi::muted(state, summary));
+    name_ = HardwareUi::heading(QString(), summary);
+    name_->setWordWrap(true);
+    text->addWidget(name_);
+    description_ = HardwareUi::muted(QString(), summary, true);
+    text->addWidget(description_);
+    state_ = new StatusLabel(summary);
+    text->addWidget(state_);
     line->addLayout(text, 1);
 
-    // A disabled checkbox suggests a broken button. Only render a checkbox
-    // when the profile can actually be staged for a change.
-    const bool canToggle = (profile.applicable || (profile.source == ProfileSource::Chwd && profile.installed))
-        && !(profile.systemManaged && profile.ready);
-    if (canToggle) {
-        auto *toggle = new QCheckBox(summary);
-        toggle->setAccessibleName(name);
-        toggle->setChecked(selection.selected(profile.id));
-        connect(toggle, &QCheckBox::toggled, this,
-                [this, id = profile.id](bool checked) { emit profileToggled(id, checked); });
-        line->addWidget(toggle);
-    }
+    toggle_ = new QCheckBox(summary);
+    connect(toggle_, &QCheckBox::toggled, this,
+            [this](bool checked) { emit profileToggled(profileId_, checked); });
+    line->addWidget(toggle_, 0, Qt::AlignTop);
 
+    details_ = new QWidget(this);
+    detailsLayout_ = new QVBoxLayout(details_);
+    detailsLayout_->setContentsMargins(17, 3, 16, 13);
+    detailsLayout_->setSpacing(6);
+    details_->hide();
     if (!profile.packages.isEmpty() || !profile.services.isEmpty()) {
-        auto *detailsButton = new QToolButton(summary);
-        detailsButton->setArrowType(Qt::RightArrow);
-        detailsButton->setToolTip(tr("Profile details"));
-        detailsButton->setAccessibleName(tr("Profile details: %1").arg(name));
-        detailsButton->setCheckable(true);
-        detailsButton->setAutoRaise(true);
-        line->addWidget(detailsButton);
+        detailsButton_ = new QToolButton(summary);
+        detailsButton_->setArrowType(Qt::RightArrow);
+        detailsButton_->setToolTip(tr("Profile details"));
+        detailsButton_->setCheckable(true);
+        detailsButton_->setAutoRaise(true);
+        detailsButton_->setAccessibleDescription(tr("Collapsed"));
+        line->addWidget(detailsButton_, 0, Qt::AlignTop);
+        connect(detailsButton_, &QToolButton::toggled, this, [this](bool expanded) {
+            details_->setVisible(expanded);
+            detailsButton_->setArrowType(expanded ? Qt::DownArrow : Qt::RightArrow);
+            detailsButton_->setAccessibleDescription(expanded ? tr("Expanded") : tr("Collapsed"));
+        });
+    }
+    outer->addWidget(summary);
+    outer->addWidget(details_);
+    updateRow(profile, selection, recommended);
+}
 
-        auto *details = new QWidget(this);
-        auto *detailsLayout = new QVBoxLayout(details);
-        detailsLayout->setContentsMargins(17, 3, 16, 13);
-        detailsLayout->setSpacing(6);
-        if (!profile.packages.isEmpty()) {
-            detailsLayout->addWidget(HardwareUi::heading(tr("Packages"), details));
-            detailsLayout->addWidget(
-                HardwareUi::muted(profile.packages.join(QStringLiteral(", ")), details, true));
-        }
-        if (!profile.services.isEmpty()) {
-            detailsLayout->addWidget(HardwareUi::heading(tr("Services"), details));
-            detailsLayout->addWidget(
-                HardwareUi::muted(profile.services.join(QStringLiteral(", ")), details, true));
-        }
-        if (profile.source == ProfileSource::Support && profile.applicable) {
-            if (!profile.disabledServices.isEmpty()) {
-                detailsLayout->addWidget(HardwareUi::heading(tr("Services not enabled"), details));
-                detailsLayout->addWidget(HardwareUi::muted(profile.disabledServices.join(QStringLiteral(", ")), details, true));
-            }
-            if (!profile.missingPackages.isEmpty()) {
-                detailsLayout->addWidget(HardwareUi::heading(tr("Missing packages"), details));
-                detailsLayout->addWidget(HardwareUi::muted(
-                    profile.missingPackages.join(QStringLiteral(", ")), details, true));
-            }
-            if (!profile.inactiveServices.isEmpty()) {
-                detailsLayout->addWidget(HardwareUi::heading(tr("Inactive services"), details));
-                detailsLayout->addWidget(HardwareUi::muted(
-                    profile.inactiveServices.join(QStringLiteral(", ")), details, true));
-            }
-        }
-        details->hide();
-        outer->addWidget(summary);
-        outer->addWidget(details);
-        connect(detailsButton, &QToolButton::toggled, this,
-                [detailsButton, details](bool expanded) {
-                    details->setVisible(expanded);
-                    detailsButton->setArrowType(expanded ? Qt::DownArrow : Qt::RightArrow);
-                });
-    } else {
-        outer->addWidget(summary);
+void ProfileRow::updateRow(const HardwareProfile &profile, const ProfileSelection &selection, bool recommended)
+{
+    if (profile.id != profileId_) return;
+    const QString name = Presentation::profileName(profile, recommended);
+    name_->setText(name);
+    const QString description = HardwareUi::translatedDescription(profile);
+    description_->setText(description);
+    description_->setVisible(!description.isEmpty());
+    const StatusText state = Presentation::profileState(profile, selection);
+    state_->setStatus(state);
+    {
+        const QSignalBlocker blocker(toggle_);
+        toggle_->setChecked(selection.selected(profile.id));
+    }
+    toggle_->setVisible(Presentation::profileToggleable(profile));
+    toggle_->setAccessibleName(name);
+    toggle_->setAccessibleDescription(state.text);
+    if (detailsButton_) detailsButton_->setAccessibleName(tr("Profile details: %1").arg(name));
+    fillDetails(profile);
+}
+
+QString ProfileRow::stateText() const
+{
+    return state_->text();
+}
+
+void ProfileRow::fillDetails(const HardwareProfile &profile)
+{
+    HardwareUi::clear(detailsLayout_);
+    const auto section = [this](const QString &title, const QStringList &items) {
+        if (items.isEmpty()) return;
+        detailsLayout_->addWidget(HardwareUi::heading(title, details_));
+        detailsLayout_->addWidget(HardwareUi::muted(items.join(QStringLiteral(", ")), details_, true));
+    };
+    section(tr("Packages"), profile.packages);
+    section(tr("Services"), profile.services);
+    if (profile.source == ProfileSource::Support && profile.applicable) {
+        section(tr("Missing packages"), profile.missingPackages);
+        section(tr("Services not enabled"), profile.disabledServices);
+        section(tr("Inactive services"), profile.inactiveServices);
     }
 }

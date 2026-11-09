@@ -153,6 +153,28 @@ QColor HardwareUi::statusColor(StatusLevel level, const QPalette &palette)
     return color;
 }
 
+const QVector<DeviceCategory> &HardwareUi::categoryOrder()
+{
+    static const QVector<DeviceCategory> order{
+        DeviceCategory::Graphics, DeviceCategory::Network, DeviceCategory::Audio,
+        DeviceCategory::Bluetooth, DeviceCategory::Camera, DeviceCategory::Printer,
+        DeviceCategory::Scanner, DeviceCategory::Tablet, DeviceCategory::Fingerprint,
+        DeviceCategory::Virtualization, DeviceCategory::Power, DeviceCategory::Cpu,
+        DeviceCategory::Thunderbolt, DeviceCategory::Controller, DeviceCategory::MobileBroadband,
+        DeviceCategory::SmartCard, DeviceCategory::Other
+    };
+    return order;
+}
+
+QString HardwareUi::focusedRowKey()
+{
+    for (QWidget *focus = QApplication::focusWidget(); focus; focus = focus->parentWidget()) {
+        const QString key = focus->property("rowKey").toString();
+        if (!key.isEmpty()) return key;
+    }
+    return {};
+}
+
 QString HardwareUi::statusSymbol(StatusLevel level)
 {
     switch (level) {

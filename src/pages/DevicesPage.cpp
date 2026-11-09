@@ -3,6 +3,8 @@
 #include "widgets/DeviceRow.h"
 #include "widgets/HardwareUi.h"
 
+#include <QApplication>
+#include <QEvent>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -10,7 +12,6 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QTimer>
-#include <QScrollBar>
 #include <QVBoxLayout>
 
 DevicesPage::DevicesPage(QWidget *parent) : QWidget(parent)
@@ -24,71 +25,91 @@ DevicesPage::DevicesPage(QWidget *parent) : QWidget(parent)
     auto *heading = new QHBoxLayout;
     heading->addWidget(HardwareUi::heading(tr("Hardware devices"), this, 10));
     heading->addStretch();
+    refreshing_ = HardwareUi::muted(tr("Refreshing…"), this);
+    refreshing_->hide();
+    heading->addWidget(refreshing_);
     auto *recommended = new QPushButton(tr("Select recommended"), this);
     recommended->setFlat(true);
     recommended->setMinimumHeight(38);
     connect(recommended, &QPushButton::clicked, this, &DevicesPage::recommendedRequested);
     heading->addWidget(recommended);
-    auto *refresh = new QPushButton(this);
-    refresh->setIcon(QIcon(HardwareUi::symbol(QStringLiteral("refresh"), palette())));
-    refresh->setIconSize(QSize(23, 23));
-    refresh->setFixedSize(38, 38);
-    refresh->setFlat(true);
-    refresh->setToolTip(tr("Refresh"));
-    refresh->setAccessibleName(tr("Refresh"));
-    connect(refresh, &QPushButton::clicked, this, &DevicesPage::refreshRequested);
-    heading->addWidget(refresh);
+    refresh_ = new QPushButton(this);
+    refresh_->setIcon(QIcon(HardwareUi::symbol(QStringLiteral("refresh"), palette())));
+    refresh_->setIconSize(QSize(23, 23));
+    refresh_->setFixedSize(38, 38);
+    refresh_->setFlat(true);
+    refresh_->setToolTip(tr("Refresh (F5)"));
+    refresh_->setAccessibleName(tr("Refresh"));
+    connect(refresh_, &QPushButton::clicked, this, &DevicesPage::refreshRequested);
+    heading->addWidget(refresh_);
     auto *report = new QPushButton(tr("Diagnostic report"), this);
     connect(report, &QPushButton::clicked, this, &DevicesPage::reportRequested);
     heading->addWidget(report);
     page->addLayout(heading);
-    page->addSpacing(22);
+    page->addSpacing(16);
+    banner_ = new NoticeBanner(this);
+    page->addWidget(banner_);
+    page->addSpacing(6);
 
     scroll_ = new QScrollArea(this);
-    auto *scroll = scroll_;
-    scroll->setFrameShape(QFrame::NoFrame);
-    scroll->setWidgetResizable(true);
-    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    auto *container = new QWidget(scroll);
+    scroll_->setFrameShape(QFrame::NoFrame);
+    scroll_->setWidgetResizable(true);
+    scroll_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto *container = new QWidget(scroll_);
     content_ = new QVBoxLayout(container);
     content_->setContentsMargins(0, 8, 0, 30);
     content_->setSpacing(17);
-    scroll->setWidget(container);
-    page->addWidget(scroll, 1);
+    scroll_->setWidget(container);
+    page->addWidget(scroll_, 1);
+}
+
+void DevicesPage::setRefreshing(bool refreshing)
+{
+    refreshing_->setVisible(refreshing);
+    refresh_->setEnabled(!refreshing);
+}
+
+QString DevicesPage::structureKey() const
+{
+    QStringList parts;
+    for (const auto &device : snapshot_.devices)
+        parts.append(QString::number(int(device.category)) + QLatin1Char('|') + device.id
+                     + QLatin1Char('|') + device.profileIds.join(QLatin1Char(',')));
+    const auto *scanner = snapshot_.profile(QStringLiteral("support:scanner"));
+    parts.append(scanner && !scanner->ready ? QStringLiteral("scanner-setup") : QString());
+    return parts.join(QLatin1Char('\n'));
 }
 
 void DevicesPage::updateState(const HardwareSnapshot &snapshot, const ProfileSelection &selection)
 {
     snapshot_ = snapshot;
     selection_ = selection;
+    banner_->setNotices(snapshot_.error, snapshot_.warnings);
+    const QString structure = structureKey();
+    if (structure == structure_ && !rows_.isEmpty()) {
+        for (const auto &device : snapshot_.devices)
+            if (auto *row = rows_.value(device.id)) row->updateRow(device, snapshot_, selection_);
+        return;
+    }
+    structure_ = structure;
     rebuild();
 }
 
 void DevicesPage::rebuild()
 {
     const int previous = scroll_->verticalScrollBar()->value();
+    const QString focused = HardwareUi::focusedRowKey();
+    rows_.clear();
     HardwareUi::clear(content_);
-    if (!snapshot_.error.isEmpty())
-        content_->addWidget(HardwareUi::muted(tr("Hardware query failed: %1").arg(snapshot_.error), this, true));
-    for (const auto &warning : snapshot_.warnings)
-        content_->addWidget(HardwareUi::muted(warning, this, true));
     const auto *scanner = snapshot_.profile(QStringLiteral("support:scanner"));
     if (scanner && !scanner->ready) {
         auto *setup = new QPushButton(tr("Set up scanner detection"), this);
         connect(setup, &QPushButton::clicked, this, [this] {
             emit profileToggled(QStringLiteral("support:scanner"), true);
         });
-        content_->addWidget(setup);
+        content_->addWidget(setup, 0, Qt::AlignLeft);
     }
-    const QVector<DeviceCategory> categories{
-        DeviceCategory::Graphics, DeviceCategory::Network, DeviceCategory::Audio,
-        DeviceCategory::Bluetooth, DeviceCategory::Camera, DeviceCategory::Printer,
-        DeviceCategory::Scanner, DeviceCategory::Tablet, DeviceCategory::Fingerprint,
-        DeviceCategory::Virtualization, DeviceCategory::Power, DeviceCategory::Cpu,
-        DeviceCategory::Thunderbolt, DeviceCategory::Controller, DeviceCategory::MobileBroadband,
-        DeviceCategory::SmartCard, DeviceCategory::Other
-    };
-    for (const auto category : categories) {
+    for (const auto category : HardwareUi::categoryOrder()) {
         QVector<HardwareDevice> devices;
         for (const auto &device : snapshot_.devices) {
             if (device.category == category) devices.append(device);
@@ -100,27 +121,28 @@ void DevicesPage::rebuild()
         layout->setSpacing(3);
         auto *button = new QPushButton(section);
         button->setFlat(true);
-        button->setMinimumHeight(60);
+        button->setCheckable(true);
+        button->setChecked(expandedCategories_.contains(category));
+        button->setMinimumHeight(56);
         button->setCursor(Qt::PointingHandCursor);
         button->setAccessibleName(categoryTitle(category));
+        button->setAccessibleDescription(tr("%n device(s)", nullptr, int(devices.size())));
         button->setStyleSheet(QStringLiteral(
-            "QPushButton { border: 0; background: transparent; border-radius: 9px; }"
+            "QPushButton, QPushButton:checked { border: 0; background: transparent; border-radius: 9px; }"
             "QPushButton:hover { background: palette(alternate-base); }"
             "QPushButton:focus { border: 1px solid palette(highlight); }"));
         auto *row = new QHBoxLayout(button);
         row->setContentsMargins(10, 8, 12, 8);
         row->setSpacing(13);
-        auto *icon = new QLabel(button);
-        icon->setPixmap(HardwareUi::symbol(categoryIcon(category), palette(), 27));
-        row->addWidget(icon);
+        row->addWidget(new SymbolLabel(categoryIcon(category), 27, button));
         row->addWidget(HardwareUi::heading(categoryTitle(category), button, 3));
         row->addStretch();
         row->addWidget(HardwareUi::muted(QString::number(devices.size()), button));
-        auto *arrow = new QLabel(button);
-        arrow->setPixmap(HardwareUi::symbol(
-            expandedCategories_.contains(category) ? QStringLiteral("chevron-down")
-                                                   : QStringLiteral("chevron-right"), palette(), 21));
+        auto *arrow = new SymbolLabel(expandedCategories_.contains(category)
+            ? QStringLiteral("chevron-down") : QStringLiteral("chevron-right"), 21, button);
         row->addWidget(arrow);
+        for (auto *child : button->findChildren<QWidget *>())
+            child->setAttribute(Qt::WA_TransparentForMouseEvents);
         layout->addWidget(button);
         HardwareUi::separator(layout, section);
 
@@ -136,25 +158,32 @@ void DevicesPage::rebuild()
                 if (value) expandedDevices_.insert(id);
                 else expandedDevices_.remove(id);
             });
+            rows_.insert(device.id, item);
             listLayout->addWidget(item);
         }
         list->setVisible(expandedCategories_.contains(category));
         layout->addWidget(list);
-        connect(button, &QPushButton::clicked, this, [this, category, list, arrow] {
-            const bool expanded = !expandedCategories_.contains(category);
+        connect(button, &QPushButton::toggled, this, [this, category, list, arrow](bool expanded) {
             if (expanded) expandedCategories_.insert(category);
             else expandedCategories_.remove(category);
             list->setVisible(expanded);
-            arrow->setPixmap(HardwareUi::symbol(
-                expanded ? QStringLiteral("chevron-down") : QStringLiteral("chevron-right"),
-                palette(), 21));
+            arrow->setSymbol(expanded ? QStringLiteral("chevron-down") : QStringLiteral("chevron-right"));
         });
         content_->addWidget(section);
     }
     if (snapshot_.devices.isEmpty() && snapshot_.error.isEmpty())
         content_->addWidget(HardwareUi::muted(tr("No detected devices"), this));
     content_->addStretch();
+    if (auto *row = rows_.value(focused)) row->header()->setFocus();
     QTimer::singleShot(0, scroll_, [this, previous] {
         scroll_->verticalScrollBar()->setValue(previous);
     });
+}
+
+void DevicesPage::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::PaletteChange || event->type() == QEvent::DevicePixelRatioChange)
+        refresh_->setIcon(QIcon(HardwareUi::symbol(QStringLiteral("refresh"), palette().color(QPalette::WindowText),
+                                                   23, devicePixelRatioF())));
 }

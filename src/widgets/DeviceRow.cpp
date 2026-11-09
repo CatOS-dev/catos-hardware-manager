@@ -1,99 +1,80 @@
 #include "DeviceRow.h"
 
 #include "HardwareUi.h"
+#include "Presentation.h"
 #include "ProfileRow.h"
 
-#include <QFileInfo>
-#include <QProcess>
-#include <QStandardPaths>
-#include <QMessageBox>
-#include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QMessageBox>
+#include <QProcess>
 #include <QPushButton>
+#include <QStandardPaths>
 #include <QVBoxLayout>
 
 DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snapshot,
                      const ProfileSelection &selection, bool expanded, QWidget *parent)
-    : QWidget(parent)
+    : QWidget(parent), deviceId_(device.id)
 {
+    setProperty("rowKey", device.id);
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
-    auto *button = new QPushButton(this);
-    button->setFlat(true);
-    button->setCursor(Qt::PointingHandCursor);
-    button->setAccessibleName(device.name);
-    button->setMinimumHeight(92);
-    button->setStyleSheet(QStringLiteral(
-        "QPushButton { border: 0; background: transparent; border-radius: 10px; }"
+    header_ = new QPushButton(this);
+    header_->setFlat(true);
+    header_->setCheckable(true);
+    header_->setCursor(Qt::PointingHandCursor);
+    header_->setMinimumHeight(84);
+    header_->setStyleSheet(QStringLiteral(
+        "QPushButton, QPushButton:checked { border: 0; background: transparent; border-radius: 10px; }"
         "QPushButton:hover { background: palette(alternate-base); }"
         "QPushButton:focus { border: 1px solid palette(highlight); }"));
-    auto *line = new QHBoxLayout(button);
+    auto *line = new QHBoxLayout(header_);
     line->setContentsMargins(16, 12, 14, 12);
     line->setSpacing(17);
-    auto *symbol = new QLabel(button);
-    symbol->setFixedSize(35, 35);
-    symbol->setPixmap(HardwareUi::symbol(categoryIcon(device.category), palette(), 30));
-    line->addWidget(symbol);
+    icon_ = new SymbolLabel(categoryIcon(device.category), 30, header_);
+    line->addWidget(icon_, 0, Qt::AlignTop);
     auto *text = new QVBoxLayout;
-    text->setSpacing(5);
-    auto *nameLabel = HardwareUi::heading(device.name, button, 2);
-    nameLabel->setWordWrap(true);
-    text->addWidget(nameLabel);
-    QStringList details;
-    if (!device.driver.isEmpty()) details.append(tr("Driver: %1").arg(device.driver));
-    QStringList installed;
-    for (const auto &id : device.profileIds) {
-        const auto *profile = snapshot.profile(id);
-        if (profile && profile->source == ProfileSource::Chwd && profile->installed)
-            installed.append(HardwareUi::translatedName(*profile));
-    }
-    if (!installed.isEmpty()) details.append(tr("CHWD: %1").arg(installed.join(QStringLiteral(", "))));
-    bool missing = false;
-    bool serviceIssue = false;
-    for (const auto &id : device.profileIds) {
-        const auto *profile = snapshot.profile(id);
-        if (profile && profile->source == ProfileSource::Support) {
-            missing |= !profile->missingPackages.isEmpty();
-            serviceIssue |= !profile->inactiveServices.isEmpty() || !profile->disabledServices.isEmpty();
-        }
-    }
-    if (missing) details.append(tr("Missing support components"));
-    else if (serviceIssue) details.append(tr("Service needs attention"));
-    else if (!device.driver.isEmpty()) details.append(tr("Driver bound; function not tested"));
-    else details.append(tr("Detected; function not tested"));
-    if (!details.isEmpty())
-        text->addWidget(HardwareUi::muted(details.join(QStringLiteral(" · ")), button, true));
+    text->setSpacing(4);
+    name_ = HardwareUi::heading(QString(), header_, 2);
+    name_->setWordWrap(true);
+    text->addWidget(name_);
+    status_ = new StatusLabel(header_);
+    text->addWidget(status_);
+    summary_ = HardwareUi::muted(QString(), header_, true);
+    text->addWidget(summary_);
     line->addLayout(text, 1);
-    arrow_ = new QLabel(button);
-    arrow_->setFixedSize(24, 24);
-    arrow_->setPixmap(HardwareUi::symbol(expanded ? QStringLiteral("chevron-down")
-                                                  : QStringLiteral("chevron-right"), palette(), 23));
+    arrow_ = new SymbolLabel(QStringLiteral("chevron-right"), 22, header_);
     line->addWidget(arrow_);
-    layout->addWidget(button);
+    layout->addWidget(header_);
+    // Labels inside the button would swallow its clicks.
+    for (auto *child : header_->findChildren<QWidget *>())
+        child->setAttribute(Qt::WA_TransparentForMouseEvents);
 
-    auto *detail = new QWidget(this);
-    auto p = detail->palette();
+    detail_ = new QWidget(this);
+    auto p = detail_->palette();
     p.setColor(QPalette::Window, p.color(QPalette::AlternateBase));
-    detail->setPalette(p);
-    detail->setAutoFillBackground(true);
-    auto *content = new QVBoxLayout(detail);
+    detail_->setPalette(p);
+    detail_->setAutoFillBackground(true);
+    auto *content = new QVBoxLayout(detail_);
     content->setContentsMargins(65, 12, 22, 17);
     content->setSpacing(2);
-    QStringList identifiers;
-    if (!device.address.isEmpty()) identifiers.append(device.bus.toUpper() + QLatin1Char(' ') + device.address);
-    if (!device.vendor.isEmpty()) identifiers.append(device.vendor);
-    if (!identifiers.isEmpty()) content->addWidget(HardwareUi::muted(identifiers.join(QStringLiteral(" · ")), detail, true));
+    identifiers_ = HardwareUi::muted(QString(), detail_, true);
+    identifiers_->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    content->addWidget(identifiers_);
+    untested_ = HardwareUi::muted(tr("The driver is loaded; the device itself has not been tested."), detail_, true);
+    content->addWidget(untested_);
     for (const auto &id : device.profileIds) {
         const auto *profile = snapshot.profile(id);
         if (!profile) continue;
-        auto *row = new ProfileRow(*profile, selection, device.recommendedProfile == id, detail);
+        auto *row = new ProfileRow(*profile, selection, device.recommendedProfile == id, detail_);
+        profiles_.insert(id, row);
         connect(row, &ProfileRow::profileToggled, this, &DeviceRow::profileToggled);
         content->addWidget(row);
     }
-    if (device.profileIds.isEmpty())
-        content->addWidget(HardwareUi::muted(tr("No additional profile"), detail));
+    if (profiles_.isEmpty())
+        content->addWidget(HardwareUi::muted(tr("No additional profile"), detail_));
+
     QString program;
     QStringList arguments;
     QString label;
@@ -110,24 +91,57 @@ DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snaps
         program = QStringLiteral("simple-scan"); label = tr("Open document scanner"); break;
     default: break;
     }
-    const QString executable = QStandardPaths::findExecutable(program);
-    if (!program.isEmpty() && !executable.isEmpty()) {
-        auto *test = new QPushButton(label, detail);
+    const QString executable = program.isEmpty() ? QString() : QStandardPaths::findExecutable(program);
+    if (!executable.isEmpty()) {
+        auto *test = new QPushButton(label, detail_);
         connect(test, &QPushButton::clicked, this, [this, executable, arguments] {
             if (!QProcess::startDetached(executable, arguments))
                 QMessageBox::warning(this, tr("Hardware Manager"), tr("Could not open the device tool."));
         });
+        content->addSpacing(6);
         content->addWidget(test, 0, Qt::AlignLeft);
     }
-    detail->setVisible(expanded);
-    layout->addWidget(detail);
-    connect(button, &QPushButton::clicked, this,
-            [this, detail, id = device.id, expanded]() mutable {
-                expanded = !expanded;
-                detail->setVisible(expanded);
-                arrow_->setPixmap(HardwareUi::symbol(expanded
-                    ? QStringLiteral("chevron-down") : QStringLiteral("chevron-right"),
-                    palette(), 23));
-                emit expansionChanged(id, expanded);
-            });
+    layout->addWidget(detail_);
+    connect(header_, &QPushButton::toggled, this, [this](bool value) {
+        setExpanded(value);
+        emit expansionChanged(deviceId_, value);
+    });
+    header_->setChecked(expanded);
+    setExpanded(expanded);
+    updateRow(device, snapshot, selection);
+}
+
+void DeviceRow::setExpanded(bool expanded)
+{
+    detail_->setVisible(expanded);
+    arrow_->setSymbol(expanded ? QStringLiteral("chevron-down") : QStringLiteral("chevron-right"));
+}
+
+void DeviceRow::updateRow(const HardwareDevice &device, const HardwareSnapshot &snapshot,
+                          const ProfileSelection &selection)
+{
+    if (device.id != deviceId_) return;
+    name_->setText(device.name);
+    const StatusText status = Presentation::deviceStatus(device, snapshot, selection);
+    status_->setStatus(status);
+    const QString summary = Presentation::deviceSummary(device, snapshot);
+    summary_->setText(summary);
+    summary_->setVisible(!summary.isEmpty());
+    const QString identifiers = Presentation::deviceIdentifiers(device);
+    identifiers_->setText(identifiers);
+    identifiers_->setVisible(!identifiers.isEmpty());
+    untested_->setVisible(!device.driver.isEmpty() && status.level == StatusLevel::Ok);
+    header_->setAccessibleName(device.name);
+    header_->setAccessibleDescription(summary.isEmpty() ? status.text
+                                                        : status.text + QStringLiteral(". ") + summary);
+    for (const auto &id : device.profileIds) {
+        const auto *profile = snapshot.profile(id);
+        if (auto *row = profiles_.value(id); row && profile)
+            row->updateRow(*profile, selection, device.recommendedProfile == id);
+    }
+}
+
+QString DeviceRow::summaryText() const
+{
+    return summary_->text();
 }

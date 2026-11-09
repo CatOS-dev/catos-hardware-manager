@@ -85,11 +85,11 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
         auto *line = new QHBoxLayout(button);
         line->setContentsMargins(12, 5, 8, 5);
         line->setSpacing(13);
-        auto *icon = new QLabel(button);
-        icon->setPixmap(HardwareUi::symbol(icons[i], palette(), 24));
-        line->addWidget(icon);
+        line->addWidget(new SymbolLabel(icons[i], 24, button));
         auto *text = new QLabel(labels[i], button);
         line->addWidget(text, 1);
+        for (auto *child : button->findChildren<QWidget *>())
+            child->setAttribute(Qt::WA_TransparentForMouseEvents);
         navigation_.append(button);
         navLabels_.append(text);
         connect(button, &QPushButton::clicked, this, [this, i] { showPage(i); });
@@ -155,9 +155,7 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     connect(watcher_, &QFutureWatcher<HardwareSnapshot>::finished, this, [this] {
         snapshot_ = watcher_->result();
         ready_ = snapshot_.isValid();
-        devices_->setEnabled(true);
-        installed_->setEnabled(true);
-        catalog_->setEnabled(true);
+        devices_->setRefreshing(false);
         statusBar()->showMessage(ready_ ? tr("Hardware information refreshed") : tr("Hardware query failed"));
         if (!ready_) {
             showData();
@@ -214,10 +212,9 @@ void HardwareManagerWindow::refresh(bool keepSelection)
 {
     if (watcher_->isRunning()) { refreshQueued_ = true; return; }
     if (applying_) return;
+    // Pages stay usable while refreshing; results are applied in place.
     statusBar()->showMessage(tr("Refreshing hardware information…"));
-    devices_->setEnabled(false);
-    installed_->setEnabled(false);
-    catalog_->setEnabled(false);
+    devices_->setRefreshing(true);
     ready_ = false;
     refreshRetain_ = keepSelection;
     updateFooter();
@@ -243,22 +240,20 @@ void HardwareManagerWindow::updateFooter()
 
 void HardwareManagerWindow::selectProfile(const QString &id, bool selected)
 {
-    if (!ready_) return;
-    if (selection_.select(id, selected, snapshot_)) showData();
+    // Selection works on the last valid snapshot, also while a refresh runs;
+    // a refresh keeps pending choices. Always resync so a rejected toggle
+    // puts the checkbox back.
+    if (!snapshot_.isValid()) return;
+    if (!selection_.select(id, selected, snapshot_))
+        statusBar()->showMessage(tr("This profile cannot be changed right now."), 5000);
+    showData();
 }
 
 void HardwareManagerWindow::selectRecommended()
 {
-    if (!ready_) return;
-    for (const auto &device : snapshot_.devices) {
-        const auto *profile = snapshot_.profile(device.recommendedProfile);
-        if (profile && device.recommendedProfile.startsWith(QLatin1String("chwd:")))
-            selection_.select(device.recommendedProfile, true, snapshot_);
-    }
-    for (const auto &profile : snapshot_.profiles) {
-        if (profile.source == ProfileSource::Support && profile.recommended && profile.applicable && !profile.ready)
-            selection_.select(profile.id, true, snapshot_);
-    }
+    if (!snapshot_.isValid()) return;
+    // Only adds: an installed driver in the same conflict group is kept.
+    selection_.selectRecommended(snapshot_);
     showData();
 }
 

@@ -25,6 +25,10 @@ QPixmap symbol(const QString &name, const QPalette &palette, int size = 24);
 // contrast ratio against the window background (WCAG AA).
 QColor statusColor(StatusLevel level, const QPalette &palette);
 QString statusSymbol(StatusLevel level);
+// Display order of categories on every page.
+const QVector<DeviceCategory> &categoryOrder();
+// Keyboard-focused row (property "rowKey") so a rebuild can restore it.
+QString focusedRowKey();
 QLabel *muted(const QString &text, QWidget *parent, bool wrap = false);
 QLabel *heading(const QString &text, QWidget *parent, int extraPoints = 0);
 void clear(QLayout *layout);

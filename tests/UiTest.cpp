@@ -1,7 +1,16 @@
 // Offscreen UI tests. Rows and pages are fed fixture snapshots, so these
 // run without udev, pacman or CHWD.
+#include "pages/DevicesPage.h"
+#include "pages/ProfileCatalogPage.h"
+#include "widgets/DeviceRow.h"
 #include "widgets/HardwareUi.h"
 #include "widgets/Presentation.h"
+#include "widgets/ProfileRow.h"
+
+#include <QCheckBox>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QLabel>
 
 #include <QApplication>
 #include <QtTest>
@@ -46,6 +55,37 @@ HardwareDevice device(const QString &id, DeviceCategory category, const QString 
     result.driver = driver;
     result.modalias = QStringLiteral("pci:v0000");
     return result;
+}
+
+// A laptop: hybrid graphics with CHWD drivers, Bluetooth that misses its
+// recommended support package, and an optional camera profile.
+HardwareSnapshot laptop()
+{
+    HardwareSnapshot snapshot;
+    snapshot.chwdAvailable = true;
+    snapshot.profiles = {chwd(QStringLiteral("nvidia-open-dkms"), true), chwd(QStringLiteral("nvidia-dkms"), false),
+                         support(QStringLiteral("bluez"), true, false), support(QStringLiteral("camera"), false, false)};
+    auto gpu = device(QStringLiteral("pci:0000:01:00.0"), DeviceCategory::Graphics, QStringLiteral("nvidia"));
+    gpu.name = QStringLiteral("GeForce RTX 4060");
+    gpu.profileIds = {QStringLiteral("chwd:nvidia-open-dkms"), QStringLiteral("chwd:nvidia-dkms")};
+    gpu.recommendedProfile = QStringLiteral("chwd:nvidia-open-dkms");
+    auto bt = device(QStringLiteral("usb:3-1"), DeviceCategory::Bluetooth, QStringLiteral("btusb"));
+    bt.name = QStringLiteral("AX211 Bluetooth");
+    bt.profileIds = {QStringLiteral("support:bluez")};
+    auto cam = device(QStringLiteral("usb:3-4"), DeviceCategory::Camera, QStringLiteral("uvcvideo"));
+    cam.profileIds = {QStringLiteral("support:camera")};
+    snapshot.devices = {gpu, bt, cam};
+    for (auto &profile : snapshot.profiles) profile.category = profile.source == ProfileSource::Chwd
+        ? DeviceCategory::Graphics : profile.name == QLatin1String("bluez") ? DeviceCategory::Bluetooth : DeviceCategory::Camera;
+    return snapshot;
+}
+
+int visibleLabelsWithText(QWidget *root, const QString &text)
+{
+    int count = 0;
+    for (auto *label : root->findChildren<QLabel *>())
+        if (!label->isHidden() && label->text() == text) ++count;
+    return count;
 }
 }
 
@@ -150,6 +190,97 @@ private slots:
         QCOMPARE(banner.notices().size(), 2);
         banner.setNotices(QStringLiteral("broken"), {});
         QCOMPARE(banner.notices().first(), QStringLiteral("Hardware query failed: broken"));
+    }
+
+    void profileRowShowsStateOnceAndUpdatesInPlace()
+    {
+        auto snapshot = laptop();
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        const auto &bluez = *snapshot.profile(QStringLiteral("support:bluez"));
+        ProfileRow row(bluez, selection, false);
+        QCOMPARE(visibleLabelsWithText(&row, QStringLiteral("Missing components")), 1);
+        auto *toggle = row.toggle();
+        QVERIFY(!toggle->isChecked());
+        QVERIFY(selection.select(bluez.id, true, snapshot));
+        row.updateRow(bluez, selection, false);
+        QCOMPARE(row.toggle(), toggle);
+        QVERIFY(toggle->isChecked());
+        QCOMPARE(row.stateText(), QStringLiteral("Will be installed"));
+        QCOMPARE(visibleLabelsWithText(&row, QStringLiteral("Missing components")), 0);
+    }
+
+    void deviceRowKeepsSummaryAfterUpdate()
+    {
+        auto snapshot = laptop();
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        DeviceRow row(snapshot.devices[0], snapshot, selection, true);
+        const QString summary = row.summaryText();
+        QVERIFY(summary.contains(QStringLiteral("Driver: nvidia")));
+        QVERIFY(summary.contains(QStringLiteral("CHWD: nvidia-open-dkms")));
+        QVERIFY(selection.select(QStringLiteral("chwd:nvidia-dkms"), true, snapshot));
+        row.updateRow(snapshot.devices[0], snapshot, selection);
+        QCOMPARE(row.summaryText(), summary);
+        QCOMPARE(row.status()->status().level, StatusLevel::Pending);
+        QVERIFY(row.header()->isCheckable());
+        QVERIFY(row.header()->isChecked());
+    }
+
+    void devicesPageUpdatesRowsWithoutRebuilding()
+    {
+        auto snapshot = laptop();
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        DevicesPage page;
+        page.resize(900, 900);
+        page.show();
+        page.activateWindow();
+        QVERIFY(QTest::qWaitForWindowActive(&page));
+        page.updateState(snapshot, selection);
+        auto *bt = page.row(QStringLiteral("usb:3-1"));
+        QVERIFY(bt);
+        QCOMPARE(bt->status()->status().level, StatusLevel::Attention);
+        bt->header()->setFocus();
+        QCOMPARE(QApplication::focusWidget(), bt->header());
+        QVERIFY(selection.select(QStringLiteral("support:bluez"), true, snapshot));
+        page.updateState(snapshot, selection);
+        QCOMPARE(page.row(QStringLiteral("usb:3-1")), bt);
+        QCOMPARE(bt->status()->status().level, StatusLevel::Pending);
+        // A new device changes the structure; focus follows the row id.
+        snapshot.devices.append(device(QStringLiteral("usb:9-9"), DeviceCategory::Controller, QStringLiteral("xpad")));
+        page.updateState(snapshot, selection);
+        QVERIFY(page.row(QStringLiteral("usb:3-1")) != bt);
+        QCOMPARE(QApplication::focusWidget(), page.row(QStringLiteral("usb:3-1"))->header());
+    }
+
+    void rejectedToggleIsRevertedByResync()
+    {
+        auto snapshot = laptop();
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        ProfileCatalogPage page;
+        page.updateState(snapshot, selection);
+        auto *row = page.row(QStringLiteral("support:bluez"));
+        QVERIFY(row);
+        row->toggle()->setChecked(true);  // user click, but the window rejects it
+        page.updateState(snapshot, selection);
+        QVERIFY(!row->toggle()->isChecked());
+    }
+
+    void catalogSearchKeepsRowsForUnchangedFilter()
+    {
+        auto snapshot = laptop();
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        ProfileCatalogPage page;
+        page.updateState(snapshot, selection);
+        page.search()->setText(QStringLiteral("bluez"));
+        QVERIFY(page.row(QStringLiteral("support:bluez")));
+        QVERIFY(!page.row(QStringLiteral("support:camera")));
+        auto *row = page.row(QStringLiteral("support:bluez"));
+        page.updateState(snapshot, selection);
+        QCOMPARE(page.row(QStringLiteral("support:bluez")), row);
     }
 };
 

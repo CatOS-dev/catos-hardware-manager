@@ -3,6 +3,7 @@
 #include "widgets/HardwareUi.h"
 #include "widgets/ProfileRow.h"
 
+#include <QCheckBox>
 #include <QFrame>
 #include <QLabel>
 #include <QLineEdit>
@@ -21,20 +22,45 @@ ProfileCatalogPage::ProfileCatalogPage(QWidget *parent) : QWidget(parent)
     search_->setPlaceholderText(tr("Search profiles"));
     search_->setClearButtonEnabled(true);
     search_->setMinimumHeight(38);
-    connect(search_, &QLineEdit::textChanged, this, [this] { rebuild(); });
+    search_->setAccessibleName(tr("Search profiles"));
+    connect(search_, &QLineEdit::textChanged, this, [this] {
+        structure_ = structureKey();
+        rebuild();
+    });
     page->addWidget(search_);
     page->addSpacing(8);
     scroll_ = new QScrollArea(this);
-    auto *scroll = scroll_;
-    scroll->setFrameShape(QFrame::NoFrame);
-    scroll->setWidgetResizable(true);
-    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    auto *widget = new QWidget(scroll);
+    scroll_->setFrameShape(QFrame::NoFrame);
+    scroll_->setWidgetResizable(true);
+    scroll_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto *widget = new QWidget(scroll_);
     content_ = new QVBoxLayout(widget);
     content_->setContentsMargins(0, 10, 0, 28);
     content_->setSpacing(9);
-    scroll->setWidget(widget);
-    page->addWidget(scroll, 1);
+    scroll_->setWidget(widget);
+    page->addWidget(scroll_, 1);
+}
+
+QVector<const HardwareProfile *> ProfileCatalogPage::visibleProfiles(DeviceCategory category) const
+{
+    const QString filter = search_->text().trimmed();
+    QVector<const HardwareProfile *> profiles;
+    for (const auto &profile : snapshot_.profiles) {
+        if (profile.category != category) continue;
+        if (!filter.isEmpty() && !profile.id.contains(filter, Qt::CaseInsensitive)
+            && !HardwareUi::translatedName(profile).contains(filter, Qt::CaseInsensitive))
+            continue;
+        profiles.append(&profile);
+    }
+    return profiles;
+}
+
+QString ProfileCatalogPage::structureKey() const
+{
+    QStringList ids;
+    for (const auto category : HardwareUi::categoryOrder())
+        for (const auto *profile : visibleProfiles(category)) ids.append(profile->id);
+    return ids.join(QLatin1Char('\n'));
 }
 
 void ProfileCatalogPage::updateState(const HardwareSnapshot &snapshot,
@@ -42,46 +68,39 @@ void ProfileCatalogPage::updateState(const HardwareSnapshot &snapshot,
 {
     snapshot_ = snapshot;
     selection_ = selection;
+    const QString structure = structureKey();
+    if (structure == structure_ && !rows_.isEmpty()) {
+        for (const auto &profile : snapshot_.profiles)
+            if (auto *row = rows_.value(profile.id)) row->updateRow(profile, selection_, false);
+        return;
+    }
+    structure_ = structure;
     rebuild();
 }
 
 void ProfileCatalogPage::rebuild()
 {
     const int previous = scroll_->verticalScrollBar()->value();
+    const QString focused = HardwareUi::focusedRowKey();
+    rows_.clear();
     HardwareUi::clear(content_);
-    const QString filter = search_->text().trimmed();
-    int visible = 0;
-    const QVector<DeviceCategory> categories{
-        DeviceCategory::Graphics, DeviceCategory::Network, DeviceCategory::Audio,
-        DeviceCategory::Bluetooth, DeviceCategory::Camera, DeviceCategory::Printer,
-        DeviceCategory::Scanner, DeviceCategory::Tablet, DeviceCategory::Fingerprint,
-        DeviceCategory::Virtualization, DeviceCategory::Power, DeviceCategory::Cpu,
-        DeviceCategory::Thunderbolt, DeviceCategory::Controller, DeviceCategory::MobileBroadband,
-        DeviceCategory::SmartCard, DeviceCategory::Other
-    };
-    for (const auto category : categories) {
-        QVector<const HardwareProfile *> profiles;
-        for (const auto &profile : snapshot_.profiles) {
-            if (profile.category != category) continue;
-            if (!filter.isEmpty() && !profile.id.contains(filter, Qt::CaseInsensitive)
-                && !HardwareUi::translatedName(profile).contains(filter, Qt::CaseInsensitive))
-                continue;
-            profiles.append(&profile);
-        }
+    for (const auto category : HardwareUi::categoryOrder()) {
+        const auto profiles = visibleProfiles(category);
         if (profiles.isEmpty()) continue;
         content_->addWidget(HardwareUi::heading(categoryTitle(category), this, 2));
         HardwareUi::separator(content_, this);
         for (const auto *profile : profiles) {
             auto *row = new ProfileRow(*profile, selection_, false, this);
             connect(row, &ProfileRow::profileToggled, this, &ProfileCatalogPage::profileToggled);
+            rows_.insert(profile->id, row);
             content_->addWidget(row);
-            ++visible;
         }
         content_->addSpacing(13);
     }
-    if (visible == 0)
+    if (rows_.isEmpty())
         content_->addWidget(HardwareUi::muted(tr("No matching profiles"), this));
     content_->addStretch();
+    if (auto *row = rows_.value(focused); row && !row->toggle()->isHidden()) row->toggle()->setFocus();
     QTimer::singleShot(0, scroll_, [this, previous] {
         scroll_->verticalScrollBar()->setValue(previous);
     });
