@@ -1,6 +1,7 @@
 // Offscreen UI tests. Rows and pages are fed fixture snapshots, so these
 // run without udev, pacman or CHWD.
 #include "dialogs/ApplyDialog.h"
+#include "dialogs/ThunderboltDialog.h"
 #include "dialogs/TransactionProtocol.h"
 #include "pages/DevicesPage.h"
 #include "pages/ProfileCatalogPage.h"
@@ -10,6 +11,7 @@
 #include "widgets/ProfileRow.h"
 
 #include <QCheckBox>
+#include <QTreeWidget>
 #include <QDialogButtonBox>
 #include <QLineEdit>
 #include <QPushButton>
@@ -479,6 +481,28 @@ private slots:
         QCOMPARE(Presentation::deviceSummary(hybrid, snapshot), QStringLiteral("Primary: Radeon 610M"));
         QVERIFY(Presentation::deviceSummary(igpu, snapshot).startsWith(QStringLiteral("Primary GPU")));
         QVERIFY(!Presentation::deviceSummary(snapshot.devices[0], snapshot).contains(QStringLiteral("Primary")));
+    }
+
+    void thunderboltDialogShowsNamesAndAllowedActions()
+    {
+        ThunderboltDialog dialog(nullptr, false);
+        BoltDevice dock{QStringLiteral("/d/1"), QStringLiteral("uid-1"), QStringLiteral("Thunderbolt 3 Dock"),
+                        QStringLiteral("GIGABYTE"), QStringLiteral("peripheral"), QStringLiteral("connected"), false};
+        BoltDevice ssd{QStringLiteral("/d/2"), QStringLiteral("uid-2"), QStringLiteral("USB4 SSD"),
+                       QStringLiteral("Acme"), QStringLiteral("peripheral"), QStringLiteral("authorized"), true};
+        dialog.setDevices({dock, ssd});
+        QCOMPARE(dialog.list()->topLevelItemCount(), 2);
+        QCOMPARE(dialog.list()->topLevelItem(0)->text(0), QStringLiteral("Thunderbolt 3 Dock"));
+        QCOMPARE(dialog.list()->topLevelItem(0)->text(2), QStringLiteral("Connected, not authorized"));
+        dialog.list()->setCurrentItem(dialog.list()->topLevelItem(0));
+        QVERIFY(dialog.authorizeButton()->isEnabled());
+        QVERIFY(!dialog.forgetButton()->isEnabled());
+        dialog.list()->setCurrentItem(dialog.list()->topLevelItem(1));
+        QVERIFY(!dialog.authorizeButton()->isEnabled());
+        QVERIFY(dialog.forgetButton()->isEnabled());
+        QCOMPARE(dialog.list()->topLevelItem(1)->text(2), QStringLiteral("Authorized · remembered"));
+        dialog.setDevices({}, QStringLiteral("not running"));
+        QVERIFY(!dialog.authorizeButton()->isEnabled());
     }
 };
 

@@ -3,6 +3,7 @@
 #include "HardwareUi.h"
 #include "Presentation.h"
 #include "ProfileRow.h"
+#include "dialogs/ThunderboltDialog.h"
 
 #include <QCoreApplication>
 #include <QFileInfo>
@@ -138,6 +139,18 @@ DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snaps
         if (switcheroo && switcheroo->ready)
             content->addWidget(HardwareUi::muted(tr("To run an application on the other GPU, choose "
                 "\"Run using dedicated graphics card\" from its context menu in the launcher."), detail_, true));
+    }
+    if (device.category == DeviceCategory::Thunderbolt) {
+        const auto *bolt = snapshot.profile(QStringLiteral("support:thunderbolt"));
+        if (bolt && bolt->ready) {
+            auto *manage = new QPushButton(tr("Manage Thunderbolt devices"), detail_);
+            connect(manage, &QPushButton::clicked, this, [this] {
+                ThunderboltDialog dialog(this);
+                dialog.exec();
+            });
+            content->addSpacing(6);
+            content->addWidget(manage, 0, Qt::AlignLeft);
+        }
     }
     const DeviceTool tool = deviceTool(device, snapshot);
     if (!tool.program.isEmpty()) {

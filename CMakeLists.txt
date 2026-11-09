@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Svg Concurrent LinguistTools)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Svg Concurrent DBus LinguistTools)
 find_package(yaml-cpp CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(UDEV REQUIRED IMPORTED_TARGET libudev)
@@ -55,9 +55,11 @@ add_library(catos-hardware-ui STATIC
     src/dialogs/ApplyDialog.cpp
     src/dialogs/TransactionProtocol.h
     src/dialogs/TransactionProtocol.cpp
+    src/dialogs/ThunderboltDialog.h
+    src/dialogs/ThunderboltDialog.cpp
 )
 target_link_libraries(catos-hardware-ui PUBLIC
-    catos-hardware-core Qt6::Widgets Qt6::Svg Qt6::Concurrent
+    catos-hardware-core Qt6::Widgets Qt6::Svg Qt6::Concurrent Qt6::DBus
 )
 
 qt_add_executable(catos-hardware-manager src/app/Main.cpp)
