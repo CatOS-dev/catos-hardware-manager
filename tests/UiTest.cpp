@@ -11,6 +11,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
+#include <QPointer>
 
 #include <QApplication>
 #include <QtTest>
@@ -248,9 +249,11 @@ private slots:
         QCOMPARE(page.row(QStringLiteral("usb:3-1")), bt);
         QCOMPARE(bt->status()->status().level, StatusLevel::Pending);
         // A new device changes the structure; focus follows the row id.
+        // A rebuilt row may reuse the old address, so watch the old object.
+        const QPointer<DeviceRow> old(bt);
         snapshot.devices.append(device(QStringLiteral("usb:9-9"), DeviceCategory::Controller, QStringLiteral("xpad")));
         page.updateState(snapshot, selection);
-        QVERIFY(page.row(QStringLiteral("usb:3-1")) != bt);
+        QVERIFY(old.isNull());
         QCOMPARE(QApplication::focusWidget(), page.row(QStringLiteral("usb:3-1"))->header());
     }
 
@@ -306,6 +309,39 @@ private slots:
         }
         QCOMPARE(row->findChildren<QWidget *>().constLast()->palette().color(QPalette::AlternateBase), QColor(0x292c30));
         QApplication::setPalette(original);
+    }
+
+    void catalogSearchMatchesDescriptionsAndPackages()
+    {
+        auto snapshot = laptop();
+        snapshot.profiles[2].description = QStringLiteral("BlueZ stack and service");
+        snapshot.profiles[2].packages = {QStringLiteral("bluez"), QStringLiteral("bluez-utils")};
+        snapshot.profiles[3].chineseDescription = QStringLiteral("摄像头工具");
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        ProfileCatalogPage page;
+        page.updateState(snapshot, selection);
+        page.search()->setText(QStringLiteral("bluez-utils"));
+        QVERIFY(page.row(QStringLiteral("support:bluez")));
+        page.search()->setText(QStringLiteral("stack"));
+        QVERIFY(page.row(QStringLiteral("support:bluez")));
+        page.search()->setText(QStringLiteral("摄像头"));
+        QVERIFY(page.row(QStringLiteral("support:camera")));
+        QVERIFY(!page.row(QStringLiteral("support:bluez")));
+    }
+
+    void devicesPageHasNoStandingScannerButton()
+    {
+        auto snapshot = laptop();
+        auto scanner = support(QStringLiteral("scanner"), false, false);
+        scanner.id = QStringLiteral("support:scanner");
+        snapshot.profiles.append(scanner);
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        DevicesPage page;
+        page.updateState(snapshot, selection);
+        for (auto *button : page.findChildren<QPushButton *>())
+            QVERIFY(button->text() != QLatin1String("Set up scanner detection"));
     }
 };
 

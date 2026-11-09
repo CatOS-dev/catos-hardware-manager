@@ -4,6 +4,7 @@
 #include "widgets/ProfileRow.h"
 
 #include <QCheckBox>
+#include <algorithm>
 #include <QFrame>
 #include <QLabel>
 #include <QLineEdit>
@@ -47,9 +48,14 @@ QVector<const HardwareProfile *> ProfileCatalogPage::visibleProfiles(DeviceCateg
     QVector<const HardwareProfile *> profiles;
     for (const auto &profile : snapshot_.profiles) {
         if (profile.category != category) continue;
-        if (!filter.isEmpty() && !profile.id.contains(filter, Qt::CaseInsensitive)
-            && !HardwareUi::translatedName(profile).contains(filter, Qt::CaseInsensitive))
-            continue;
+        if (!filter.isEmpty()) {
+            const QStringList haystack = QStringList{profile.id, profile.name, profile.chineseName,
+                profile.description, profile.chineseDescription} + profile.packages;
+            if (!std::any_of(haystack.cbegin(), haystack.cend(), [&filter](const QString &text) {
+                    return text.contains(filter, Qt::CaseInsensitive);
+                }))
+                continue;
+        }
         profiles.append(&profile);
     }
     return profiles;

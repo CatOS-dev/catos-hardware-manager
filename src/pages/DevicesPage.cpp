@@ -75,8 +75,6 @@ QString DevicesPage::structureKey() const
     for (const auto &device : snapshot_.devices)
         parts.append(QString::number(int(device.category)) + QLatin1Char('|') + device.id
                      + QLatin1Char('|') + device.profileIds.join(QLatin1Char(',')));
-    const auto *scanner = snapshot_.profile(QStringLiteral("support:scanner"));
-    parts.append(scanner && !scanner->ready ? QStringLiteral("scanner-setup") : QString());
     return parts.join(QLatin1Char('\n'));
 }
 
@@ -101,14 +99,6 @@ void DevicesPage::rebuild()
     const QString focused = HardwareUi::focusedRowKey();
     rows_.clear();
     HardwareUi::clear(content_);
-    const auto *scanner = snapshot_.profile(QStringLiteral("support:scanner"));
-    if (scanner && !scanner->ready) {
-        auto *setup = new QPushButton(tr("Set up scanner detection"), this);
-        connect(setup, &QPushButton::clicked, this, [this] {
-            emit profileToggled(QStringLiteral("support:scanner"), true);
-        });
-        content_->addWidget(setup, 0, Qt::AlignLeft);
-    }
     for (const auto category : HardwareUi::categoryOrder()) {
         QVector<HardwareDevice> devices;
         for (const auto &device : snapshot_.devices) {
