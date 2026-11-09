@@ -119,18 +119,11 @@ void DevicesPage::rebuild()
         auto *layout = new QVBoxLayout(section);
         layout->setContentsMargins(0, 0, 0, 0);
         layout->setSpacing(3);
-        auto *button = new QPushButton(section);
-        button->setFlat(true);
-        button->setCheckable(true);
+        auto *button = new RowButton(section);
         button->setChecked(expandedCategories_.contains(category));
         button->setMinimumHeight(56);
-        button->setCursor(Qt::PointingHandCursor);
         button->setAccessibleName(categoryTitle(category));
         button->setAccessibleDescription(tr("%n device(s)", nullptr, int(devices.size())));
-        button->setStyleSheet(QStringLiteral(
-            "QPushButton, QPushButton:checked { border: 0; background: transparent; border-radius: 9px; }"
-            "QPushButton:hover { background: palette(alternate-base); }"
-            "QPushButton:focus { border: 1px solid palette(highlight); }"));
         auto *row = new QHBoxLayout(button);
         row->setContentsMargins(10, 8, 12, 8);
         row->setSpacing(13);
@@ -163,7 +156,7 @@ void DevicesPage::rebuild()
         }
         list->setVisible(expandedCategories_.contains(category));
         layout->addWidget(list);
-        connect(button, &QPushButton::toggled, this, [this, category, list, arrow](bool expanded) {
+        connect(button, &RowButton::toggled, this, [this, category, list, arrow](bool expanded) {
             if (expanded) expandedCategories_.insert(category);
             else expandedCategories_.remove(category);
             list->setVisible(expanded);

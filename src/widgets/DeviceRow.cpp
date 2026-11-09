@@ -20,15 +20,8 @@ DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snaps
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
-    header_ = new QPushButton(this);
-    header_->setFlat(true);
-    header_->setCheckable(true);
-    header_->setCursor(Qt::PointingHandCursor);
+    header_ = new RowButton(this);
     header_->setMinimumHeight(84);
-    header_->setStyleSheet(QStringLiteral(
-        "QPushButton, QPushButton:checked { border: 0; background: transparent; border-radius: 10px; }"
-        "QPushButton:hover { background: palette(alternate-base); }"
-        "QPushButton:focus { border: 1px solid palette(highlight); }"));
     auto *line = new QHBoxLayout(header_);
     line->setContentsMargins(16, 12, 14, 12);
     line->setSpacing(17);
@@ -52,9 +45,7 @@ DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snaps
         child->setAttribute(Qt::WA_TransparentForMouseEvents);
 
     detail_ = new QWidget(this);
-    auto p = detail_->palette();
-    p.setColor(QPalette::Window, p.color(QPalette::AlternateBase));
-    detail_->setPalette(p);
+    detail_->setBackgroundRole(QPalette::AlternateBase);
     detail_->setAutoFillBackground(true);
     auto *content = new QVBoxLayout(detail_);
     content->setContentsMargins(65, 12, 22, 17);

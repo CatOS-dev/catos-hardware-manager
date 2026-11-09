@@ -3,6 +3,7 @@
 #include "model/HardwareTypes.h"
 #include "Presentation.h"
 
+#include <QAbstractButton>
 #include <QFrame>
 #include <QLabel>
 
@@ -93,4 +94,19 @@ private:
     QStringList notices_;
     StatusLevel level_ = StatusLevel::Attention;
     bool applying_ = false;
+};
+
+// A flat, checkable row header that draws hover and focus feedback from
+// the current palette. Unlike a style-sheeted QPushButton, its children
+// keep following palette changes (light/dark switches).
+class RowButton : public QAbstractButton {
+    Q_OBJECT
+public:
+    explicit RowButton(QWidget *parent = nullptr);
+    // Navigation buttons show their checked state; disclosure headers don't.
+    void setHighlightChecked(bool highlight) { highlightChecked_ = highlight; update(); }
+protected:
+    void paintEvent(QPaintEvent *event) override;
+private:
+    bool highlightChecked_ = false;
 };

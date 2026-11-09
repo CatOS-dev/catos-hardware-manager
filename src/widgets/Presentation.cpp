@@ -96,6 +96,8 @@ QString Presentation::deviceSummary(const HardwareDevice &device, const Hardware
 
 QString Presentation::deviceIdentifiers(const HardwareDevice &device)
 {
+    // Synthetic entries (system:cpu, system:graphics, ...) have no bus address.
+    if (device.id.startsWith(QLatin1String("system:"))) return device.vendor;
     QStringList identifiers;
     if (!device.address.isEmpty()) identifiers.append(device.bus.toUpper() + QLatin1Char(' ') + device.address);
     if (!device.vendor.isEmpty()) identifiers.append(device.vendor);

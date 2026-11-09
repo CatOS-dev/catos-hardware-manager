@@ -9,6 +9,7 @@
 class QFutureWatcherBase;
 class QLabel;
 class QPushButton;
+class RowButton;
 class QStackedWidget;
 class QFrame;
 class DevicesPage;
@@ -40,7 +41,7 @@ private:
     bool refreshQueued_ = false;
     bool refreshRetain_ = false;
     QFutureWatcher<HardwareSnapshot> *watcher_ = nullptr;
-    QVector<QPushButton *> navigation_;
+    QVector<RowButton *> navigation_;
     QVector<QLabel *> navLabels_;
     QStackedWidget *stack_ = nullptr;
     DevicesPage *devices_ = nullptr;

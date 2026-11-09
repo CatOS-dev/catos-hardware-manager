@@ -7,7 +7,7 @@
 #include <QWidget>
 
 class QLabel;
-class QPushButton;
+class RowButton;
 class ProfileRow;
 class StatusLabel;
 class SymbolLabel;
@@ -21,7 +21,7 @@ public:
     void updateRow(const HardwareDevice &device, const HardwareSnapshot &snapshot,
                    const ProfileSelection &selection);
     QString deviceId() const { return deviceId_; }
-    QPushButton *header() const { return header_; }
+    RowButton *header() const { return header_; }
     StatusLabel *status() const { return status_; }
     QString summaryText() const;
     QList<ProfileRow *> profileRows() const { return profiles_.values(); }
@@ -31,7 +31,7 @@ signals:
 private:
     void setExpanded(bool expanded);
     QString deviceId_;
-    QPushButton *header_ = nullptr;
+    RowButton *header_ = nullptr;
     SymbolLabel *icon_ = nullptr;
     SymbolLabel *arrow_ = nullptr;
     QLabel *name_ = nullptr;

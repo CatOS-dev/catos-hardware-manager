@@ -42,9 +42,6 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
 
     auto *sidebar = new QWidget(root);
     sidebar->setFixedWidth(234);
-    auto sidebarPalette = sidebar->palette();
-    sidebarPalette.setColor(QPalette::Window, palette().color(QPalette::Window));
-    sidebar->setPalette(sidebarPalette);
     sidebar->setAutoFillBackground(true);
     auto *left = new QVBoxLayout(sidebar);
     left->setContentsMargins(24, 28, 16, 22);
@@ -70,18 +67,10 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     const QStringList labels{tr("Hardware devices"), tr("Installed profiles"), tr("Profile catalog")};
     const QStringList icons{QStringLiteral("computer"), QStringLiteral("package"), QStringLiteral("layers")};
     for (int i = 0; i < labels.size(); ++i) {
-        auto *button = new QPushButton(sidebar);
-        button->setFlat(true);
-        button->setCheckable(true);
+        auto *button = new RowButton(sidebar);
+        button->setHighlightChecked(true);
         button->setMinimumHeight(54);
-        button->setCursor(Qt::PointingHandCursor);
-        button->setFocusPolicy(Qt::StrongFocus);
         button->setAccessibleName(labels[i]);
-        button->setStyleSheet(QStringLiteral(
-            "QPushButton { background: transparent; border: 0; border-radius: 11px; }"
-            "QPushButton:checked { background: palette(alternate-base); }"
-            "QPushButton:hover:!checked { background: palette(alternate-base); }"
-            "QPushButton:focus { border: 1px solid palette(highlight); }"));
         auto *line = new QHBoxLayout(button);
         line->setContentsMargins(12, 5, 8, 5);
         line->setSpacing(13);
@@ -92,7 +81,7 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
             child->setAttribute(Qt::WA_TransparentForMouseEvents);
         navigation_.append(button);
         navLabels_.append(text);
-        connect(button, &QPushButton::clicked, this, [this, i] { showPage(i); });
+        connect(button, &RowButton::clicked, this, [this, i] { showPage(i); });
         left->addWidget(button);
         left->addSpacing(3);
     }
@@ -122,9 +111,7 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
 
     footer_ = new QFrame(right);
     footer_->setFrameShape(QFrame::StyledPanel);
-    auto barPalette = footer_->palette();
-    barPalette.setColor(QPalette::Window, barPalette.color(QPalette::AlternateBase));
-    footer_->setPalette(barPalette);
+    footer_->setBackgroundRole(QPalette::AlternateBase);
     footer_->setAutoFillBackground(true);
     auto *actions = new QHBoxLayout(footer_);
     actions->setContentsMargins(30, 12, 30, 12);

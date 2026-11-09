@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QLocale>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPushButton>
 #include <QSvgRenderer>
 #include <QVBoxLayout>
@@ -404,4 +405,27 @@ void NoticeBanner::applyColours()
     setPalette(p);
     applying_ = false;
     icon_->setLevel(level_);
+}
+
+RowButton::RowButton(QWidget *parent) : QAbstractButton(parent)
+{
+    setCheckable(true);
+    setFocusPolicy(Qt::StrongFocus);
+    setCursor(Qt::PointingHandCursor);
+    setAttribute(Qt::WA_Hover);
+}
+
+void RowButton::paintEvent(QPaintEvent *)
+{
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+    const QRectF area = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
+    QPainterPath path;
+    path.addRoundedRect(area, 10, 10);
+    if (underMouse() || isDown() || (highlightChecked_ && isChecked()))
+        painter.fillPath(path, palette().color(QPalette::AlternateBase));
+    if (hasFocus()) {
+        painter.setPen(QPen(palette().color(QPalette::Highlight), 1.5));
+        painter.drawPath(path);
+    }
 }
