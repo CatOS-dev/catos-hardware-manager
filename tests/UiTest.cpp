@@ -282,6 +282,31 @@ private slots:
         page.updateState(snapshot, selection);
         QCOMPARE(page.row(QStringLiteral("support:bluez")), row);
     }
+
+    void headersFollowApplicationPaletteChanges()
+    {
+        auto snapshot = laptop();
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        DevicesPage page;
+        page.show();
+        page.updateState(snapshot, selection);
+        const QPalette original = QApplication::palette();
+        QPalette dark = original;
+        dark.setColor(QPalette::Window, QColor(0x202326));
+        dark.setColor(QPalette::WindowText, QColor(0xfcfcfc));
+        dark.setColor(QPalette::AlternateBase, QColor(0x292c30));
+        QApplication::setPalette(dark);
+        QCoreApplication::processEvents();
+        auto *row = page.row(QStringLiteral("pci:0000:01:00.0"));
+        QVERIFY(row);
+        for (auto *label : row->header()->findChildren<QLabel *>()) {
+            if (label->text() == QLatin1String("GeForce RTX 4060"))
+                QCOMPARE(label->palette().color(QPalette::WindowText), QColor(0xfcfcfc));
+        }
+        QCOMPARE(row->findChildren<QWidget *>().constLast()->palette().color(QPalette::AlternateBase), QColor(0x292c30));
+        QApplication::setPalette(original);
+    }
 };
 
 QTEST_MAIN(UiTest)
