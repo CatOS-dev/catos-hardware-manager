@@ -32,8 +32,7 @@ target_link_libraries(catos-hardware-core PUBLIC
     Qt6::Core yaml-cpp::yaml-cpp PkgConfig::UDEV
 )
 
-qt_add_executable(catos-hardware-manager
-    src/app/Main.cpp
+add_library(catos-hardware-ui STATIC
     src/app/HardwareManagerWindow.h
     src/app/HardwareManagerWindow.cpp
     src/pages/DevicesPage.h
@@ -44,6 +43,8 @@ qt_add_executable(catos-hardware-manager
     src/pages/ProfileCatalogPage.cpp
     src/widgets/HardwareUi.h
     src/widgets/HardwareUi.cpp
+    src/widgets/Presentation.h
+    src/widgets/Presentation.cpp
     src/widgets/DeviceRow.h
     src/widgets/DeviceRow.cpp
     src/widgets/ProfileRow.h
@@ -51,9 +52,12 @@ qt_add_executable(catos-hardware-manager
     src/dialogs/ApplyDialog.h
     src/dialogs/ApplyDialog.cpp
 )
-target_link_libraries(catos-hardware-manager PRIVATE
+target_link_libraries(catos-hardware-ui PUBLIC
     catos-hardware-core Qt6::Widgets Qt6::Svg Qt6::Concurrent
 )
+
+qt_add_executable(catos-hardware-manager src/app/Main.cpp)
+target_link_libraries(catos-hardware-manager PRIVATE catos-hardware-ui)
 
 qt_add_lrelease(catos-hardware-manager
     TS_FILES translations/catos-hardware-manager_zh_CN.ts
@@ -80,6 +84,11 @@ if(BUILD_TESTING)
     target_link_libraries(catos-hardware-regression PRIVATE catos-hardware-core Qt6::Test)
     target_compile_definitions(catos-hardware-regression PRIVATE PROFILE_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/data/profiles")
     add_test(NAME hardware-regression COMMAND catos-hardware-regression)
+
+    qt_add_executable(catos-ui-test tests/UiTest.cpp)
+    target_link_libraries(catos-ui-test PRIVATE catos-hardware-ui Qt6::Test)
+    add_test(NAME ui COMMAND catos-ui-test)
+    set_tests_properties(ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;LANG=C.UTF-8;LANGUAGE=")
 
     pkg_check_modules(UMOCKDEV IMPORTED_TARGET umockdev-1.0)
     find_program(UMOCKDEV_WRAPPER umockdev-wrapper)
