@@ -76,6 +76,22 @@ QStringList modulesForModalias(const QString &modalias)
     return result;
 }
 
+// udev normally stores the hwdb names in its database. Inside containers
+// or for devices udev has not processed yet they are missing; ask the
+// hwdb directly instead of showing a raw product id.
+QString hwdbProperty(udev_device *dev, const QString &modalias, const char *key)
+{
+    if (modalias.isEmpty()) return {};
+    std::unique_ptr<udev_hwdb, decltype(&udev_hwdb_unref)> hwdb(
+        udev_hwdb_new(udev_device_get_udev(dev)), &udev_hwdb_unref);
+    if (!hwdb) return {};
+    for (auto *entry = udev_hwdb_get_properties_list_entry(hwdb.get(), modalias.toUtf8().constData(), 0);
+         entry; entry = udev_list_entry_get_next(entry)) {
+        if (qstrcmp(udev_list_entry_get_name(entry), key) == 0) return text(udev_list_entry_get_value(entry));
+    }
+    return {};
+}
+
 QString preferred(const QStringList &values)
 {
     for (const auto &value : values) {
@@ -165,13 +181,18 @@ HardwareDevice makeDevice(udev_device *dev, DeviceCategory category,
     // unavailable (e.g. a kernel update replaced /usr/lib/modules).
     const QString loaded = QString(result.driver).replace(QLatin1Char('-'), QLatin1Char('_'));
     if (!loaded.isEmpty() && !result.modules.contains(loaded)) result.modules.append(loaded);
-    result.name = preferred({property(dev, "ID_MODEL_FROM_DATABASE"), property(physical, "ID_MODEL_FROM_DATABASE"),
-                             property(dev, "ID_MODEL"), property(physical, "ID_MODEL"),
+    QString physicalAlias = preferred({property(physical, "MODALIAS"), attribute(physical, "modalias")});
+    if (physicalAlias.isEmpty() && text(udev_device_get_subsystem(physical)) == QLatin1String("usb"))
+        physicalAlias = QStringLiteral("usb:v%1p%2d%3").arg(attribute(physical, "idVendor").toUpper(),
+            attribute(physical, "idProduct").toUpper(), attribute(physical, "bcdDevice").toUpper());
+    QString databaseModel = preferred({property(dev, "ID_MODEL_FROM_DATABASE"), property(physical, "ID_MODEL_FROM_DATABASE")});
+    QString databaseVendor = preferred({property(dev, "ID_VENDOR_FROM_DATABASE"), property(physical, "ID_VENDOR_FROM_DATABASE")});
+    if (databaseModel.isEmpty()) databaseModel = hwdbProperty(physical, physicalAlias, "ID_MODEL_FROM_DATABASE");
+    if (databaseVendor.isEmpty()) databaseVendor = hwdbProperty(physical, physicalAlias, "ID_VENDOR_FROM_DATABASE");
+    result.name = preferred({databaseModel, property(dev, "ID_MODEL"), property(physical, "ID_MODEL"),
                              attribute(physical, "product"), attribute(physical, "device"),
                              result.address});
-    result.vendor = preferred({property(dev, "ID_VENDOR_FROM_DATABASE"),
-                               property(physical, "ID_VENDOR_FROM_DATABASE"),
-                               property(dev, "ID_VENDOR"), property(physical, "ID_VENDOR"),
+    result.vendor = preferred({databaseVendor, property(dev, "ID_VENDOR"), property(physical, "ID_VENDOR"),
                                attribute(physical, "manufacturer"), attribute(physical, "vendor")});
     result.vendorId = preferred({property(physical, "ID_VENDOR_ID"), attribute(physical, "idVendor"),
                                  attribute(physical, "vendor")});
@@ -422,7 +443,7 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
         device.category = DeviceCategory::Graphics;
         device.bus = QStringLiteral("system");
         device.address = QStringLiteral("graphics");
-        device.name = QStringLiteral("Multiple graphics adapters");
+        device.name = QCoreApplication::translate("DeviceDiscovery", "Hybrid graphics");
         device.capabilities.append(QStringLiteral("dual-gpu"));
         if (QFileInfo::exists(QStringLiteral("/sys/kernel/debug/vgaswitcheroo/switch"))
             || !QStandardPaths::findExecutable(QStringLiteral("switcherooctl")).isEmpty())
@@ -443,7 +464,9 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
             device.category = DeviceCategory::Cpu;
             device.bus = QStringLiteral("system");
             device.address = QStringLiteral("cpu");
-            device.name = vendor == QLatin1String("authenticamd") ? QStringLiteral("AMD processor") : QStringLiteral("Intel processor");
+            device.name = vendor == QLatin1String("authenticamd")
+                ? QCoreApplication::translate("DeviceDiscovery", "AMD processor")
+                : QCoreApplication::translate("DeviceDiscovery", "Intel processor");
             device.capabilities.append(capability);
             add(all, std::move(device));
         }
@@ -460,7 +483,15 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
             device.category = DeviceCategory::Virtualization;
             device.bus = QStringLiteral("system");
             device.address = QStringLiteral("virt");
-            device.name = type;
+            static const QHash<QString, const char *> names{
+                {QStringLiteral("kvm"), QT_TRANSLATE_NOOP("DeviceDiscovery", "KVM virtual machine")},
+                {QStringLiteral("qemu"), QT_TRANSLATE_NOOP("DeviceDiscovery", "QEMU virtual machine")},
+                {QStringLiteral("oracle"), QT_TRANSLATE_NOOP("DeviceDiscovery", "VirtualBox virtual machine")},
+                {QStringLiteral("vmware"), QT_TRANSLATE_NOOP("DeviceDiscovery", "VMware virtual machine")},
+                {QStringLiteral("microsoft"), QT_TRANSLATE_NOOP("DeviceDiscovery", "Hyper-V virtual machine")}};
+            device.name = names.contains(type)
+                ? QCoreApplication::translate("DeviceDiscovery", names.value(type))
+                : QCoreApplication::translate("DeviceDiscovery", "Virtual machine (%1)").arg(type);
             device.capabilities.append(QStringLiteral("virt-") + type);
             if (QFileInfo::exists(QStringLiteral("/dev/virtio-ports/org.qemu.guest_agent.0")))
                 device.capabilities.append(QStringLiteral("qemu-ga-port"));
@@ -482,7 +513,7 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
         device.category = DeviceCategory::Power;
         device.bus = QStringLiteral("power_supply");
         device.address = entry;
-        device.name = QStringLiteral("Battery");
+        device.name = QCoreApplication::translate("DeviceDiscovery", "Battery");
         device.capabilities.append(QStringLiteral("battery"));
         add(all, std::move(device));
         break;

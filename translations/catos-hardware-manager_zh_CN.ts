@@ -7,6 +7,46 @@
       <source>Thunderbolt / USB4 controller</source>
       <translation>雷电 / USB4 控制器</translation>
     </message>
+    <message>
+      <source>Hybrid graphics</source>
+      <translation>混合显卡</translation>
+    </message>
+    <message>
+      <source>AMD processor</source>
+      <translation>AMD 处理器</translation>
+    </message>
+    <message>
+      <source>Intel processor</source>
+      <translation>Intel 处理器</translation>
+    </message>
+    <message>
+      <source>KVM virtual machine</source>
+      <translation>KVM 虚拟机</translation>
+    </message>
+    <message>
+      <source>QEMU virtual machine</source>
+      <translation>QEMU 虚拟机</translation>
+    </message>
+    <message>
+      <source>VirtualBox virtual machine</source>
+      <translation>VirtualBox 虚拟机</translation>
+    </message>
+    <message>
+      <source>VMware virtual machine</source>
+      <translation>VMware 虚拟机</translation>
+    </message>
+    <message>
+      <source>Hyper-V virtual machine</source>
+      <translation>Hyper-V 虚拟机</translation>
+    </message>
+    <message>
+      <source>Virtual machine (%1)</source>
+      <translation>虚拟机（%1）</translation>
+    </message>
+    <message>
+      <source>Battery</source>
+      <translation>电池</translation>
+    </message>
   </context>
   <context>
     <name>DeviceRow</name>
