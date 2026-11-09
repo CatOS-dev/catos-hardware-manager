@@ -19,6 +19,19 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
            const QStringList &install, const QStringList &support,
            const Runner &run, const Reader &read, const LineSink &log, const ErrorSink &error)
 {
+    HardwareApplyRequest request;
+    request.remove = remove;
+    request.install = install;
+    request.support = support;
+    return apply(before, request, run, read, log, error);
+}
+
+bool apply(const HardwareSnapshot &before, const HardwareApplyRequest &request,
+           const Runner &run, const Reader &read, const LineSink &log, const ErrorSink &error)
+{
+    const QStringList &remove = request.remove;
+    const QStringList &install = request.install;
+    const QStringList &support = request.support;
     const auto emitError = [&error](const QString &message) {
         std::fprintf(stderr, "%s\n", message.toUtf8().constData());
         if (error) error(message);
@@ -91,6 +104,13 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
         arguments.append(name);
         steps.append({QStringLiteral("service"), name, QStringLiteral("/usr/bin/systemctl"), arguments});
     }
+    for (const auto &id : request.disableServices) {
+        const auto *profile = before.profile(id);
+        if (!profile) return false;
+        for (const auto &service : profile->services)
+            steps.append({QStringLiteral("disable-service"), service, QStringLiteral("/usr/bin/systemctl"),
+                          {QStringLiteral("disable"), QStringLiteral("--now"), service}});
+    }
     // Emit the complete plan before making changes, so skipped operations stay visible.
     for (int i = 0; i < steps.size(); ++i)
         emitLine(QStringLiteral("PLAN|%1|%2|%3|%4").arg(i + 1).arg(steps.size(), 0)
@@ -151,6 +171,15 @@ bool apply(const HardwareSnapshot &before, const QStringList &remove,
         const auto *profile = after.profile(id);
         if (!profile || !profile->ready) {
             emitLine(QStringLiteral("ERROR|support|%1|not-ready").arg(id));
+            return false;
+        }
+    }
+    for (const auto &id : request.disableServices) {
+        const auto *profile = after.profile(id);
+        const bool stopped = profile && profile->disabledServices.size() == profile->services.size()
+            && profile->inactiveServices.size() == profile->services.size();
+        if (!stopped) {
+            emitLine(QStringLiteral("ERROR|support|%1|still-active").arg(id));
             return false;
         }
     }

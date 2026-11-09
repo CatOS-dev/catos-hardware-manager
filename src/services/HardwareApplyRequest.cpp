@@ -24,10 +24,11 @@ bool read(const QStringList &arguments, HardwareApplyRequest &request)
             used.insert(QStringLiteral("expect:") + name);
             continue;
         }
-        if (operation == QLatin1String("--support-install")) {
+        if (operation == QLatin1String("--support-install") || operation == QLatin1String("--disable-services")) {
             if (!name.startsWith(QLatin1String("support:"))
                 || !validName(name.mid(8)) || used.contains(name)) return false;
-            request.support.append(name);
+            if (operation == QLatin1String("--support-install")) request.support.append(name);
+            else request.disableServices.append(name);
         } else if (operation == QLatin1String("--install")
                    || operation == QLatin1String("--remove")) {
             if (!validName(name) || used.contains(name)) return false;
@@ -36,7 +37,8 @@ bool read(const QStringList &arguments, HardwareApplyRequest &request)
         } else return false;
         used.insert(name);
     }
-    return !request.remove.isEmpty() || !request.install.isEmpty() || !request.support.isEmpty();
+    return !request.remove.isEmpty() || !request.install.isEmpty() || !request.support.isEmpty()
+        || !request.disableServices.isEmpty();
 }
 
 bool validate(const HardwareApplyRequest &request, const HardwareSnapshot &snapshot)
@@ -76,6 +78,16 @@ bool validate(const HardwareApplyRequest &request, const HardwareSnapshot &snaps
             for (const auto &package : other->conflicts)
                 if (profile->packages.contains(package)) return false;
         }
+    }
+    QSet<QString> enabling;
+    for (const auto &id : request.support)
+        if (const auto *profile = snapshot.profile(id)) enabling.unite(QSet<QString>(profile->services.cbegin(), profile->services.cend()));
+    for (const auto &id : request.disableServices) {
+        const auto *profile = snapshot.profile(id);
+        if (!profile || profile->source != ProfileSource::Support || !profile->ready
+            || profile->services.isEmpty()) return false;
+        for (const auto &service : profile->services)
+            if (enabling.contains(service)) return false;
     }
     return true;
 }

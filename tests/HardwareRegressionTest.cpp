@@ -434,6 +434,79 @@ private slots:
         QVERIFY(Preflight::needsDkms(state, {QStringLiteral("new")}));
         QVERIFY(!Preflight::needsDkms(state, {}));
     }
+    void readyServiceCanBeStoppedExplicitly()
+    {
+        auto state = stoppedBluetooth();
+        state.activeServices = state.enabledServices;
+        HardwareService::updateSupportState(state.profiles[0], state);
+        QVERIFY(state.profiles[0].ready);
+        ProfileSelection selection;
+        selection.refresh(state, false);
+        // Unchecking a ready system-managed profile is not a way to disable it.
+        QVERIFY(!selection.select(QStringLiteral("support:bluetooth"), false, state));
+        QVERIFY(selection.stageServiceDisable(QStringLiteral("support:bluetooth"), true, state));
+        QCOMPARE(selection.pendingCount(state), 1);
+        selection.refresh(state, true);
+        QCOMPARE(selection.disablingServices(state), QStringList{QStringLiteral("support:bluetooth")});
+
+        HardwareApplyRequest request;
+        QVERIFY(HardwareApplyRequestParser::read({QStringLiteral("apply"), QStringLiteral("--disable-services"),
+                                                  QStringLiteral("support:bluetooth")}, request));
+        QVERIFY(HardwareApplyRequestParser::validate(request, state));
+        QStringList calls;
+        const bool result = HardwareTransaction::apply(state, request,
+            [&calls, &state](const QString &program, const QStringList &arguments) {
+                calls.append(program + QLatin1Char(' ') + arguments.join(QLatin1Char(' ')));
+                state.enabledServices.clear();
+                state.activeServices.clear();
+                HardwareService::updateSupportState(state.profiles[0], state);
+                return true;
+            }, [&state] { return state; });
+        QVERIFY(result);
+        QCOMPARE(calls, QStringList{QStringLiteral("/usr/bin/systemctl disable --now bluetooth.service")});
+        // Packages stay installed.
+        QVERIFY(state.installedPackages.contains(QStringLiteral("bluez")));
+    }
+    void stoppingServicesIsVerified()
+    {
+        auto state = stoppedBluetooth();
+        state.activeServices = state.enabledServices;
+        HardwareService::updateSupportState(state.profiles[0], state);
+        HardwareApplyRequest request;
+        request.disableServices = {QStringLiteral("support:bluetooth")};
+        const bool result = HardwareTransaction::apply(state, request,
+            [](const QString &, const QStringList &) { return true; }, [&state] { return state; });
+        QVERIFY(!result);
+    }
+    void stoppingServicesNeedsReadyProfileWithServices()
+    {
+        auto state = stoppedBluetooth();  // service stopped: not ready
+        ProfileSelection selection;
+        selection.refresh(state, false);
+        QVERIFY(!selection.stageServiceDisable(QStringLiteral("support:bluetooth"), true, state));
+        HardwareApplyRequest request;
+        request.disableServices = {QStringLiteral("support:bluetooth")};
+        QVERIFY(!HardwareApplyRequestParser::validate(request, state));
+        state.activeServices = state.enabledServices;
+        HardwareService::updateSupportState(state.profiles[0], state);
+        state.profiles[0].services.clear();
+        QVERIFY(!ProfileSelection::canDisableServices(state.profiles[0]));
+        QVERIFY(!HardwareApplyRequestParser::validate(request, state));
+    }
+    void discardingClearsStagedServiceStops()
+    {
+        auto state = stoppedBluetooth();
+        state.activeServices = state.enabledServices;
+        HardwareService::updateSupportState(state.profiles[0], state);
+        ProfileSelection selection;
+        selection.refresh(state, false);
+        QVERIFY(selection.stageServiceDisable(QStringLiteral("support:bluetooth"), true, state));
+        selection.reset(state);
+        QCOMPARE(selection.pendingCount(state), 0);
+        QVERIFY(selection.stageServiceDisable(QStringLiteral("support:bluetooth"), true, state));
+        selection.refresh(state, false);
+        QCOMPARE(selection.pendingCount(state), 0);
+    }
 };
 QTEST_GUILESS_MAIN(HardwareRegressionTest)
 #include "HardwareRegressionTest.moc"

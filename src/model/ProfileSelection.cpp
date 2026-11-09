@@ -13,6 +13,7 @@ QStringList sorted(QStringList items)
 void ProfileSelection::reset(const HardwareSnapshot &state)
 {
     selected_.clear();
+    disableServices_.clear();
     for (const auto &profile : state.profiles) {
         if (profile.source == ProfileSource::Chwd ? profile.installed : profile.ready)
             selected_.insert(profile.id);
@@ -36,6 +37,11 @@ void ProfileSelection::refresh(const HardwareSnapshot &state, bool retainPending
                 && !baseline_.contains(profile.chwdName))
                 selected_.insert(profile.id);
         }
+    }
+    for (auto it = disableServices_.begin(); it != disableServices_.end();) {
+        const auto *profile = state.profile(*it);
+        if (!retainPending || !profile || !canDisableServices(*profile)) it = disableServices_.erase(it);
+        else ++it;
     }
     readySupport_.clear();
     for (const auto &profile : state.profiles)
@@ -134,7 +140,30 @@ QStringList ProfileSelection::enablingSupport(const HardwareSnapshot &state) con
     return sorted(names);
 }
 
+bool ProfileSelection::canDisableServices(const HardwareProfile &profile)
+{
+    return profile.source == ProfileSource::Support && profile.ready && !profile.services.isEmpty();
+}
+
+bool ProfileSelection::stageServiceDisable(const QString &id, bool staged, const HardwareSnapshot &state)
+{
+    const auto *profile = state.profile(id);
+    if (!staged) return disableServices_.remove(id);
+    if (!profile || !canDisableServices(*profile)) return false;
+    disableServices_.insert(id);
+    return true;
+}
+
+QStringList ProfileSelection::disablingServices(const HardwareSnapshot &state) const
+{
+    QStringList ids;
+    for (const auto &profile : state.profiles)
+        if (disableServices_.contains(profile.id) && canDisableServices(profile)) ids.append(profile.id);
+    return sorted(ids);
+}
+
 int ProfileSelection::pendingCount(const HardwareSnapshot &state) const
 {
-    return installingChwd(state).size() + removingChwd(state).size() + enablingSupport(state).size();
+    return installingChwd(state).size() + removingChwd(state).size()
+        + enablingSupport(state).size() + disablingServices(state).size();
 }

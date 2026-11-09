@@ -86,7 +86,7 @@ int main(int argc, char **argv)
     if (!HardwareApplyRequestParser::validate(request, before))
         return fail(3, "ERROR|state|changed", "Hardware state or supported profiles have changed. Refresh and review again.");
 
-    const bool ok = HardwareTransaction::apply(before, request.remove, request.install, request.support,
+    const bool ok = HardwareTransaction::apply(before, request,
         execute, [] { return HardwareService::read(QStringLiteral("/usr/bin/chwd"), ReadOptions{false}); },
         [](const QString &line) { writeLog((line + QLatin1Char('\n')).toUtf8()); },
         [](const QString &line) { writeLog((QStringLiteral("ERROR|") + line + QLatin1Char('\n')).toUtf8()); });
