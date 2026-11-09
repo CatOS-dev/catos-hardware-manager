@@ -353,7 +353,7 @@ private slots:
         QCOMPARE(document.object().value(QStringLiteral("queryFailed")).toBool(), true);
         QVERIFY(document.object().value(QStringLiteral("warningSummary")).toArray().contains(QStringLiteral("hardware-query-warning")));
         const auto devices = document.object().value(QStringLiteral("devices")).toArray();
-        QCOMPARE(devices.first().toObject().value(QStringLiteral("category")).toString(), QStringLiteral("Bluetooth"));
+        QCOMPARE(devices.first().toObject().value(QStringLiteral("category")).toString(), QStringLiteral("bluetooth"));
         QVERIFY(report.contains("bluetooth.service"));
     }
     void microcodeBootDetection_data()

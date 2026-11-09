@@ -144,6 +144,29 @@ QString categoryTitle(DeviceCategory category)
     }
 }
 
+QString categoryKey(DeviceCategory category)
+{
+    switch (category) {
+    case DeviceCategory::Graphics: return QStringLiteral("graphics");
+    case DeviceCategory::Network: return QStringLiteral("network");
+    case DeviceCategory::Audio: return QStringLiteral("audio");
+    case DeviceCategory::Bluetooth: return QStringLiteral("bluetooth");
+    case DeviceCategory::Camera: return QStringLiteral("camera");
+    case DeviceCategory::Printer: return QStringLiteral("printer");
+    case DeviceCategory::Scanner: return QStringLiteral("scanner");
+    case DeviceCategory::Tablet: return QStringLiteral("tablet");
+    case DeviceCategory::Fingerprint: return QStringLiteral("fingerprint");
+    case DeviceCategory::Virtualization: return QStringLiteral("virtualization");
+    case DeviceCategory::Power: return QStringLiteral("power");
+    case DeviceCategory::Cpu: return QStringLiteral("cpu");
+    case DeviceCategory::Thunderbolt: return QStringLiteral("thunderbolt");
+    case DeviceCategory::Controller: return QStringLiteral("controller");
+    case DeviceCategory::MobileBroadband: return QStringLiteral("wwan");
+    case DeviceCategory::SmartCard: return QStringLiteral("smartcard");
+    default: return QStringLiteral("other");
+    }
+}
+
 QString categoryIcon(DeviceCategory category)
 {
     switch (category) {

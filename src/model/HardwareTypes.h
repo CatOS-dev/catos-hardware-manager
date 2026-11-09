@@ -95,4 +95,6 @@ struct HardwareSnapshot {
 };
 
 QString categoryTitle(DeviceCategory category);
+// Stable, untranslated key (the YAML category name) for reports and JSON.
+QString categoryKey(DeviceCategory category);
 QString categoryIcon(DeviceCategory category);
