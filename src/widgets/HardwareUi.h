@@ -40,6 +40,8 @@ QWidget *header(const QString &title, QPushButton *action, QWidget *parent);
 enum class ChineseScript { None, Simplified, Traditional };
 ChineseScript chineseScriptFor(const QStringList &uiLanguages);
 ChineseScript preferredChinese();
+// Install Qt's and the application's translations for the preferred language.
+void installTranslations();
 QString translatedName(const HardwareProfile &profile);
 QString translatedDescription(const HardwareProfile &profile);
 }

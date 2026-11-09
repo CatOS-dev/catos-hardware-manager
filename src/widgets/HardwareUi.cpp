@@ -4,7 +4,10 @@
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QDir>
+#include <QLibraryInfo>
 #include <QLocale>
+#include <QTranslator>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPushButton>
@@ -252,6 +255,29 @@ HardwareUi::ChineseScript HardwareUi::preferredChinese()
 {
     static const ChineseScript script = chineseScriptFor(QLocale::system().uiLanguages());
     return script;
+}
+
+void HardwareUi::installTranslations()
+{
+    auto *app = QCoreApplication::instance();
+    // Qt's own strings: standard dialog buttons such as Cancel and Close.
+    auto *qt = new QTranslator(app);
+    if (qt->load(QLocale(), QStringLiteral("qtbase"), QStringLiteral("_"),
+                 QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+        QCoreApplication::installTranslator(qt);
+    const auto script = preferredChinese();
+    if (script == ChineseScript::None) return;
+    const QString file = script == ChineseScript::Traditional
+        ? QStringLiteral("catos-hardware-manager_zh_TW") : QStringLiteral("catos-hardware-manager_zh_CN");
+    const QString bin = QCoreApplication::applicationDirPath();
+    auto *translator = new QTranslator(app);
+    for (const auto &dir : {bin, bin + QStringLiteral("/translations"),
+                            QDir::cleanPath(bin + QStringLiteral("/../share/catos-hardware-manager/translations"))}) {
+        if (translator->load(file, dir)) {
+            QCoreApplication::installTranslator(translator);
+            return;
+        }
+    }
 }
 
 namespace {

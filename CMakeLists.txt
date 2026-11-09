@@ -35,6 +35,8 @@ target_link_libraries(catos-hardware-core PUBLIC
 )
 
 add_library(catos-hardware-ui STATIC
+    src/app/Cli.h
+    src/app/Cli.cpp
     src/app/HardwareManagerWindow.h
     src/app/HardwareManagerWindow.cpp
     src/pages/DevicesPage.h
