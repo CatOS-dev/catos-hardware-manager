@@ -4,10 +4,14 @@
 #include "ProfileCatalog.h"
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QFile>
+#include <QRegularExpression>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <algorithm>
 #include <QJsonObject>
+#include <QFileInfo>
 #include <QProcessEnvironment>
 #include <QProcess>
 
@@ -268,13 +272,30 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram, ReadOptions o
     if (!snapshot.packageSatisfiabilityKnown)
         snapshot.warnings.append(QCoreApplication::translate("HardwareService",
             "Cannot query package dependency satisfaction; using installed package names."));
+    // Only services of profiles that apply to this machine are relevant;
+    // querying guest-tool services on bare metal only produces noise.
     QSet<QString> serviceNames;
-    for (const auto &profile : support)
+    for (const auto &profile : support) {
+        const bool applicable = profile.discovery
+            || std::any_of(snapshot.devices.cbegin(), snapshot.devices.cend(),
+                           [&profile](const HardwareDevice &device) { return ProfileCatalog::matches(profile, device); });
+        if (!applicable) continue;
         for (const auto &service : profile.services) serviceNames.insert(service);
+    }
     for (const auto &service : serviceNames)
         readService(service, snapshot);
 
     attachSupportProfiles(snapshot, support);
+    for (const auto &device : snapshot.devices) {
+        if (device.category != DeviceCategory::Cpu) continue;
+        const QString package = device.capabilities.contains(QStringLiteral("cpu-amd"))
+            ? QStringLiteral("amd-ucode") : QStringLiteral("intel-ucode");
+        if (snapshot.installedPackages.contains(package)
+            && microcodeBoot(QStringLiteral("/"), package) == MicrocodeBoot::NotLoaded)
+            snapshot.warnings.append(QCoreApplication::translate("HardwareService",
+                "%1 is installed, but neither the initramfs nor the boot loader entries load it. Add the microcode hook to mkinitcpio or reference /boot/%1.img in the boot entry.").arg(package));
+        break;
+    }
     snapshot.devices.erase(std::remove_if(snapshot.devices.begin(), snapshot.devices.end(),
         [](const HardwareDevice &device) {
             return device.category == DeviceCategory::Other && device.profileIds.isEmpty();
@@ -284,6 +305,57 @@ HardwareSnapshot HardwareService::read(const QString &chwdProgram, ReadOptions o
         return a.name.localeAwareCompare(b.name) < 0;
     });
     return snapshot;
+}
+
+MicrocodeBoot HardwareService::microcodeBoot(const QString &root, const QString &package)
+{
+    const QDir base(root);
+    const auto read = [&base](const QString &path) {
+        QFile file(base.filePath(path));
+        return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
+    };
+    // mkinitcpio 38+ embeds microcode through the "microcode" hook; dracut
+    // and booster embed it by default.
+    const bool mkinitcpio = QFileInfo::exists(base.filePath(QStringLiteral("usr/bin/mkinitcpio")));
+    if (!mkinitcpio) {
+        if (QFileInfo::exists(base.filePath(QStringLiteral("usr/bin/dracut")))
+            || QFileInfo::exists(base.filePath(QStringLiteral("usr/bin/booster"))))
+            return MicrocodeBoot::Loaded;
+        return MicrocodeBoot::Unknown;
+    }
+    QStringList mkinitcpioConfigs{read(QStringLiteral("etc/mkinitcpio.conf"))};
+    const QDir dropins(base.filePath(QStringLiteral("etc/mkinitcpio.conf.d")));
+    for (const auto &name : dropins.entryList({QStringLiteral("*.conf")}, QDir::Files))
+        mkinitcpioConfigs.append(read(QStringLiteral("etc/mkinitcpio.conf.d/") + name));
+    const QRegularExpression hooks(QStringLiteral("^\\s*HOOKS\\s*=\\s*\\(([^)]*)\\)"), QRegularExpression::MultilineOption);
+    QString activeHooks;
+    for (const auto &config : mkinitcpioConfigs) {
+        auto matches = hooks.globalMatch(config);
+        while (matches.hasNext()) activeHooks = matches.next().captured(1);  // last assignment wins
+    }
+    if (activeHooks.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts)
+            .contains(QStringLiteral("microcode")))
+        return MicrocodeBoot::Loaded;
+    if (activeHooks.isEmpty()) return MicrocodeBoot::Unknown;
+
+    QStringList entries{QStringLiteral("boot/grub/grub.cfg"), QStringLiteral("boot/limine.conf"),
+        QStringLiteral("boot/limine/limine.conf"), QStringLiteral("boot/EFI/limine/limine.conf"),
+        QStringLiteral("efi/limine.conf"), QStringLiteral("efi/EFI/limine/limine.conf"),
+        QStringLiteral("boot/efi/limine.conf"), QStringLiteral("boot/refind_linux.conf")};
+    for (const auto &directory : {QStringLiteral("boot/loader/entries"), QStringLiteral("efi/loader/entries"),
+                                  QStringLiteral("boot/efi/loader/entries")}) {
+        for (const auto &name : QDir(base.filePath(directory)).entryList({QStringLiteral("*.conf")}, QDir::Files))
+            entries.append(directory + QLatin1Char('/') + name);
+    }
+    bool sawEntry = false;
+    for (const auto &entry : entries) {
+        const QString contents = read(entry);
+        if (contents.isEmpty()) continue;
+        sawEntry = true;
+        if (contents.contains(package + QStringLiteral(".img"))) return MicrocodeBoot::Loaded;
+    }
+    // Unreadable /boot or a UKI-only setup: no evidence either way.
+    return sawEntry ? MicrocodeBoot::NotLoaded : MicrocodeBoot::Unknown;
 }
 
 void HardwareService::updateSupportState(HardwareProfile &profile, const HardwareSnapshot &snapshot)

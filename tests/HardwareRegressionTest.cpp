@@ -355,6 +355,44 @@ private slots:
         QCOMPARE(devices.first().toObject().value(QStringLiteral("category")).toString(), QStringLiteral("Bluetooth"));
         QVERIFY(report.contains("bluetooth.service"));
     }
+    void microcodeBootDetection_data()
+    {
+        QTest::addColumn<QStringList>("files");
+        QTest::addColumn<int>("expected");
+        const QString pacmanHooks = QStringLiteral("etc/mkinitcpio.conf=HOOKS=(base udev autodetect modconf block filesystems fsck)");
+        QTest::newRow("dracut embeds microcode") << QStringList{QStringLiteral("usr/bin/dracut=")}
+            << int(MicrocodeBoot::Loaded);
+        QTest::newRow("mkinitcpio microcode hook") << QStringList{QStringLiteral("usr/bin/mkinitcpio="),
+            QStringLiteral("etc/mkinitcpio.conf=HOOKS=(base systemd autodetect microcode modconf block filesystems)"),
+            QStringLiteral("boot/limine.conf=/vmlinuz-linux")} << int(MicrocodeBoot::Loaded);
+        QTest::newRow("drop-in adds hook") << QStringList{QStringLiteral("usr/bin/mkinitcpio="), pacmanHooks,
+            QStringLiteral("etc/mkinitcpio.conf.d/10-microcode.conf=HOOKS=(base udev microcode block)"),
+            QStringLiteral("boot/grub/grub.cfg=linux /vmlinuz-linux")} << int(MicrocodeBoot::Loaded);
+        QTest::newRow("grub loads image") << QStringList{QStringLiteral("usr/bin/mkinitcpio="), pacmanHooks,
+            QStringLiteral("boot/grub/grub.cfg=initrd /amd-ucode.img /initramfs-linux.img")} << int(MicrocodeBoot::Loaded);
+        QTest::newRow("systemd-boot entry misses image") << QStringList{QStringLiteral("usr/bin/mkinitcpio="), pacmanHooks,
+            QStringLiteral("boot/loader/entries/arch.conf=initrd /initramfs-linux.img")} << int(MicrocodeBoot::NotLoaded);
+        QTest::newRow("limine entry misses image") << QStringList{QStringLiteral("usr/bin/mkinitcpio="), pacmanHooks,
+            QStringLiteral("boot/limine/limine.conf=module_path: boot():/initramfs-linux.img")} << int(MicrocodeBoot::NotLoaded);
+        QTest::newRow("unreadable boot partition") << QStringList{QStringLiteral("usr/bin/mkinitcpio="), pacmanHooks}
+            << int(MicrocodeBoot::Unknown);
+        QTest::newRow("unknown generator") << QStringList{} << int(MicrocodeBoot::Unknown);
+    }
+    void microcodeBootDetection()
+    {
+        QFETCH(QStringList, files);
+        QFETCH(int, expected);
+        QTemporaryDir root;
+        QVERIFY(root.isValid());
+        for (const auto &file : files) {
+            const QString path = root.filePath(file.section(QLatin1Char('='), 0, 0));
+            QDir().mkpath(QFileInfo(path).absolutePath());
+            QFile output(path);
+            QVERIFY(output.open(QIODevice::WriteOnly));
+            output.write(file.section(QLatin1Char('='), 1).toUtf8());
+        }
+        QCOMPARE(int(HardwareService::microcodeBoot(root.path(), QStringLiteral("amd-ucode"))), expected);
+    }
 };
 QTEST_GUILESS_MAIN(HardwareRegressionTest)
 #include "HardwareRegressionTest.moc"
