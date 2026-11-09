@@ -4,6 +4,8 @@
 #include "Presentation.h"
 #include "ProfileRow.h"
 
+#include <QCoreApplication>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
@@ -11,6 +13,70 @@
 #include <QPushButton>
 #include <QStandardPaths>
 #include <QVBoxLayout>
+
+namespace {
+struct DeviceTool {
+    QString program;
+    QStringList arguments;
+    QString label;
+};
+
+// A System Settings module is only useful when its plugin is installed;
+// kcmshell6 alone opens an error window otherwise.
+bool kcmInstalled(const QString &module)
+{
+    for (const auto &root : QCoreApplication::libraryPaths()) {
+        for (const auto &group : {QStringLiteral("systemsettings"), QStringLiteral("systemsettings_qwidgets")}) {
+            if (QFileInfo::exists(root + QStringLiteral("/plasma/kcms/") + group + QLatin1Char('/') + module + QStringLiteral(".so")))
+                return true;
+        }
+    }
+    return false;
+}
+
+DeviceTool settingsModule(const QString &module, const QString &label)
+{
+    const QString kcmshell = QStandardPaths::findExecutable(QStringLiteral("kcmshell6"));
+    if (kcmshell.isEmpty() || !kcmInstalled(module)) return {};
+    return {kcmshell, {module}, label};
+}
+
+DeviceTool application(const QStringList &candidates, const QString &label)
+{
+    for (const auto &candidate : candidates) {
+        const QString path = QStandardPaths::findExecutable(candidate);
+        if (!path.isEmpty()) return {path, {}, label};
+    }
+    return {};
+}
+
+DeviceTool deviceTool(const HardwareDevice &device, const HardwareSnapshot &snapshot)
+{
+    switch (device.category) {
+    case DeviceCategory::Audio:
+        return settingsModule(QStringLiteral("kcm_pulseaudio"), DeviceRow::tr("Open sound settings"));
+    case DeviceCategory::Bluetooth:
+        return settingsModule(QStringLiteral("kcm_bluetooth"), DeviceRow::tr("Open Bluetooth settings"));
+    case DeviceCategory::Printer:
+        return settingsModule(QStringLiteral("kcm_printer_manager"), DeviceRow::tr("Open printer settings and test printing"));
+    case DeviceCategory::Camera:
+        // qv4l2 is a developer tool; prefer the KDE camera app.
+        return application({QStringLiteral("kamoso"), QStringLiteral("qv4l2")}, DeviceRow::tr("Open camera test tool"));
+    case DeviceCategory::Scanner:
+        return application({QStringLiteral("skanpage"), QStringLiteral("simple-scan")}, DeviceRow::tr("Open document scanner"));
+    case DeviceCategory::Fingerprint: {
+        // Enrolling needs fprintd; offer it once the support profile is ready.
+        const auto *profile = snapshot.profile(QStringLiteral("support:fingerprint"));
+        if (!profile || !profile->ready || !device.profileIds.contains(profile->id)) return {};
+        return settingsModule(QStringLiteral("kcm_users"), DeviceRow::tr("Enroll fingerprints"));
+    }
+    case DeviceCategory::Power:
+        return settingsModule(QStringLiteral("kcm_powerdevilprofilesconfig"), DeviceRow::tr("Open power settings"));
+    default:
+        return {};
+    }
+}
+}
 
 DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snapshot,
                      const ProfileSelection &selection, bool expanded, QWidget *parent)
@@ -66,31 +132,15 @@ DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snaps
     if (profiles_.isEmpty())
         content->addWidget(HardwareUi::muted(tr("No additional profile"), detail_));
 
-    QString program;
-    QStringList arguments;
-    QString label;
-    switch (device.category) {
-    case DeviceCategory::Audio:
-        program = QStringLiteral("kcmshell6"); arguments = {QStringLiteral("kcm_pulseaudio")}; label = tr("Open sound settings"); break;
-    case DeviceCategory::Bluetooth:
-        program = QStringLiteral("kcmshell6"); arguments = {QStringLiteral("kcm_bluetooth")}; label = tr("Open Bluetooth settings"); break;
-    case DeviceCategory::Printer:
-        program = QStringLiteral("kcmshell6"); arguments = {QStringLiteral("kcm_printer_manager")}; label = tr("Open printer settings and test printing"); break;
-    case DeviceCategory::Camera:
-        program = QStringLiteral("qv4l2"); label = tr("Open camera test tool"); break;
-    case DeviceCategory::Scanner:
-        program = QStringLiteral("simple-scan"); label = tr("Open document scanner"); break;
-    default: break;
-    }
-    const QString executable = program.isEmpty() ? QString() : QStandardPaths::findExecutable(program);
-    if (!executable.isEmpty()) {
-        auto *test = new QPushButton(label, detail_);
-        connect(test, &QPushButton::clicked, this, [this, executable, arguments] {
-            if (!QProcess::startDetached(executable, arguments))
+    const DeviceTool tool = deviceTool(device, snapshot);
+    if (!tool.program.isEmpty()) {
+        auto *button = new QPushButton(tool.label, detail_);
+        connect(button, &QPushButton::clicked, this, [this, tool] {
+            if (!QProcess::startDetached(tool.program, tool.arguments))
                 QMessageBox::warning(this, tr("Hardware Manager"), tr("Could not open the device tool."));
         });
         content->addSpacing(6);
-        content->addWidget(test, 0, Qt::AlignLeft);
+        content->addWidget(button, 0, Qt::AlignLeft);
     }
     layout->addWidget(detail_);
     connect(header_, &QPushButton::toggled, this, [this](bool value) {
