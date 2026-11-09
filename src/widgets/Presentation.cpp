@@ -4,6 +4,8 @@
 
 #include <QCoreApplication>
 
+#include <algorithm>
+
 namespace {
 QString attention(const QString &reason)
 {
@@ -84,6 +86,17 @@ StatusText Presentation::deviceStatus(const HardwareDevice &device, const Hardwa
 QString Presentation::deviceSummary(const HardwareDevice &device, const HardwareSnapshot &snapshot)
 {
     QStringList parts;
+    const bool hybrid = std::any_of(snapshot.devices.cbegin(), snapshot.devices.cend(), [](const HardwareDevice &other) {
+        return other.capabilities.contains(QStringLiteral("dual-gpu"));
+    });
+    if (device.capabilities.contains(QStringLiteral("dual-gpu"))) {
+        for (const auto &gpu : snapshot.devices) {
+            if (gpu.capabilities.contains(QStringLiteral("primary-gpu")))
+                parts.append(QCoreApplication::translate("Presentation", "Primary: %1").arg(gpu.name));
+        }
+    }
+    if (hybrid && device.capabilities.contains(QStringLiteral("primary-gpu")))
+        parts.append(QCoreApplication::translate("Presentation", "Primary GPU"));
     if (!device.driver.isEmpty()) parts.append(QCoreApplication::translate("Presentation", "Driver: %1").arg(device.driver));
     QStringList installed;
     for (const auto &id : device.profileIds) {

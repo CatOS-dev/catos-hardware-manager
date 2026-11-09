@@ -464,6 +464,22 @@ private slots:
         // LANGUAGE=de:zh_TW: no German translation, so Traditional Chinese.
         QCOMPARE(HardwareUi::chineseScriptFor({QStringLiteral("de-DE"), QStringLiteral("zh-TW")}), S::Traditional);
     }
+
+    void hybridGraphicsNamesThePrimaryGpu()
+    {
+        auto snapshot = laptop();
+        auto igpu = device(QStringLiteral("pci:0000:06:00.0"), DeviceCategory::Graphics, QStringLiteral("amdgpu"));
+        igpu.name = QStringLiteral("Radeon 610M");
+        igpu.capabilities = {QStringLiteral("graphics"), QStringLiteral("primary-gpu")};
+        HardwareDevice hybrid;
+        hybrid.id = QStringLiteral("system:graphics");
+        hybrid.category = DeviceCategory::Graphics;
+        hybrid.capabilities = {QStringLiteral("dual-gpu")};
+        snapshot.devices << igpu << hybrid;
+        QCOMPARE(Presentation::deviceSummary(hybrid, snapshot), QStringLiteral("Primary: Radeon 610M"));
+        QVERIFY(Presentation::deviceSummary(igpu, snapshot).startsWith(QStringLiteral("Primary GPU")));
+        QVERIFY(!Presentation::deviceSummary(snapshot.devices[0], snapshot).contains(QStringLiteral("Primary")));
+    }
 };
 
 QTEST_MAIN(UiTest)

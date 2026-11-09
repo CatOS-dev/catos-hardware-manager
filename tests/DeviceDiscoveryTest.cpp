@@ -24,6 +24,16 @@ E: ID_VENDOR_FROM_DATABASE=NVIDIA Corporation
 A: class=0x030000
 A: vendor=0x10de
 A: device=0x28e0
+A: boot_vga=0
+
+P: /devices/pci0000:00/0000:00:08.1/0000:06:00.0
+E: SUBSYSTEM=pci
+E: DRIVER=amdgpu
+E: ID_MODEL_FROM_DATABASE=Raphael
+A: class=0x030000
+A: vendor=0x1002
+A: device=0x164e
+A: boot_vga=1
 
 P: /devices/pci0000:00/0000:00:1f.3
 E: SUBSYSTEM=pci
@@ -160,6 +170,13 @@ private slots:
         QCOMPARE(gpu.productId, QStringLiteral("0x28e0"));
         QCOMPARE(gpu.driver, QStringLiteral("nvidia"));
         QVERIFY(gpu.name.contains(QStringLiteral("RTX 4060")));
+    }
+
+    void hybridGraphicsMarksBootDisplay()
+    {
+        QVERIFY(only(QStringLiteral("pci:0000:06:00.0")).capabilities.contains(QStringLiteral("primary-gpu")));
+        QVERIFY(!only(QStringLiteral("pci:0000:01:00.0")).capabilities.contains(QStringLiteral("primary-gpu")));
+        QVERIFY(only(QStringLiteral("system:graphics")).capabilities.contains(QStringLiteral("dual-gpu")));
     }
 
     void soundCardReportsPciDriver()

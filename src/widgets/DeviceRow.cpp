@@ -133,6 +133,12 @@ DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snaps
     if (profiles_.isEmpty())
         content->addWidget(HardwareUi::muted(tr("No additional profile"), detail_));
 
+    if (device.capabilities.contains(QStringLiteral("dual-gpu"))) {
+        const auto *switcheroo = snapshot.profile(QStringLiteral("support:switcheroo-control"));
+        if (switcheroo && switcheroo->ready)
+            content->addWidget(HardwareUi::muted(tr("To run an application on the other GPU, choose "
+                "\"Run using dedicated graphics card\" from its context menu in the launcher."), detail_, true));
+    }
     const DeviceTool tool = deviceTool(device, snapshot);
     if (!tool.program.isEmpty()) {
         auto *button = new QPushButton(tool.label, detail_);

@@ -291,8 +291,14 @@ QVector<HardwareDevice> enumerateSubsystem(udev *context, const char *subsystem,
         const QString name = sysName(device.get());
         if (sub == QLatin1String("pci")) {
             const QString classId = attribute(device.get(), "class").toLower();
-            if (classId.startsWith(QLatin1String("0x03")))
-                devices.append(makeDevice(device.get(), DeviceCategory::Graphics, QStringLiteral("graphics")));
+            if (classId.startsWith(QLatin1String("0x03"))) {
+                auto gpu = makeDevice(device.get(), DeviceCategory::Graphics, QStringLiteral("graphics"));
+                // The firmware's boot display adapter; on hybrid laptops the
+                // one that drives the panel by default.
+                if (attribute(device.get(), "boot_vga") == QLatin1String("1"))
+                    gpu.capabilities.append(QStringLiteral("primary-gpu"));
+                devices.append(std::move(gpu));
+            }
             else if (classId.startsWith(QLatin1String("0x02")))
                 devices.append(makeDevice(device.get(), DeviceCategory::Network, QStringLiteral("network")));
             else if (classId.startsWith(QLatin1String("0x0401"))
@@ -445,9 +451,6 @@ QVector<HardwareDevice> DeviceDiscovery::enumerate(bool scanners, const QSet<QSt
         device.address = QStringLiteral("graphics");
         device.name = QCoreApplication::translate("DeviceDiscovery", "Hybrid graphics");
         device.capabilities.append(QStringLiteral("dual-gpu"));
-        if (QFileInfo::exists(QStringLiteral("/sys/kernel/debug/vgaswitcheroo/switch"))
-            || !QStandardPaths::findExecutable(QStringLiteral("switcherooctl")).isEmpty())
-            device.capabilities.append(QStringLiteral("switcheroo"));
         add(all, std::move(device));
     }
 
