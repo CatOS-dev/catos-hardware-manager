@@ -79,6 +79,14 @@
       <translation>打开文档扫描工具</translation>
     </message>
     <message>
+      <source>Enroll fingerprints</source>
+      <translation>录入指纹</translation>
+    </message>
+    <message>
+      <source>Open power settings</source>
+      <translation>打开电源设置</translation>
+    </message>
+    <message>
       <source>Hardware Manager</source>
       <translation>硬件管理器</translation>
     </message>
@@ -122,10 +130,6 @@
     <message>
       <source>Diagnostic report</source>
       <translation>诊断报告</translation>
-    </message>
-    <message>
-      <source>Set up scanner detection</source>
-      <translation>安装扫描仪发现组件</translation>
     </message>
   </context>
   <context>
@@ -236,6 +240,10 @@
     <message>
       <source>Last operation</source>
       <translation>上次操作</translation>
+    </message>
+    <message>
+      <source>Apply (Ctrl+Enter)</source>
+      <translation>应用 (Ctrl+Enter)</translation>
     </message>
     <message>
       <source>Hardware information refreshed</source>
