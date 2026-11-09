@@ -127,6 +127,7 @@ DeviceRow::DeviceRow(const HardwareDevice &device, const HardwareSnapshot &snaps
         auto *row = new ProfileRow(*profile, selection, device.recommendedProfile == id, detail_);
         profiles_.insert(id, row);
         connect(row, &ProfileRow::profileToggled, this, &DeviceRow::profileToggled);
+        connect(row, &ProfileRow::serviceStopToggled, this, &DeviceRow::serviceStopToggled);
         content->addWidget(row);
     }
     if (profiles_.isEmpty())

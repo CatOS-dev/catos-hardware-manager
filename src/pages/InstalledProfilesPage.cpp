@@ -69,6 +69,7 @@ void InstalledProfilesPage::rebuild(const HardwareSnapshot &snapshot, const Prof
         for (const auto *profile : profiles) {
             auto *row = new ProfileRow(*profile, selection, false, this);
             connect(row, &ProfileRow::profileToggled, this, &InstalledProfilesPage::profileToggled);
+            connect(row, &ProfileRow::serviceStopToggled, this, &InstalledProfilesPage::serviceStopToggled);
             rows_.insert(profile->id, row);
             content_->addWidget(row);
         }

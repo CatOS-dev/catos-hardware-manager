@@ -137,6 +137,7 @@ void DevicesPage::rebuild()
             auto *item = new DeviceRow(device, snapshot_, selection_,
                                        expandedDevices_.contains(device.id), list);
             connect(item, &DeviceRow::profileToggled, this, &DevicesPage::profileToggled);
+            connect(item, &DeviceRow::serviceStopToggled, this, &DevicesPage::serviceStopToggled);
             connect(item, &DeviceRow::expansionChanged, this, [this](const QString &id, bool value) {
                 if (value) expandedDevices_.insert(id);
                 else expandedDevices_.remove(id);

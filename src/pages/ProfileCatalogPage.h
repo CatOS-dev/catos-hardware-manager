@@ -20,6 +20,7 @@ public:
     ProfileRow *row(const QString &profileId) const { return rows_.value(profileId); }
 signals:
     void profileToggled(const QString &id, bool checked);
+    void serviceStopToggled(const QString &id, bool staged);
 private:
     QVector<const HardwareProfile *> visibleProfiles(DeviceCategory category) const;
     QString structureKey() const;

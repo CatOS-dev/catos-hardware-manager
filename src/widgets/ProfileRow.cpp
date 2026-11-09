@@ -6,6 +6,7 @@
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QPushButton>
 #include <QSignalBlocker>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -37,6 +38,10 @@ ProfileRow::ProfileRow(const HardwareProfile &profile, const ProfileSelection &s
     connect(toggle_, &QCheckBox::toggled, this,
             [this](bool checked) { emit profileToggled(profileId_, checked); });
     line->addWidget(toggle_, 0, Qt::AlignTop);
+    stop_ = new QPushButton(summary);
+    stop_->setFlat(true);
+    connect(stop_, &QPushButton::clicked, this, [this] { emit serviceStopToggled(profileId_, !stopStaged_); });
+    line->addWidget(stop_, 0, Qt::AlignTop);
 
     details_ = new QWidget(this);
     detailsLayout_ = new QVBoxLayout(details_);
@@ -77,6 +82,12 @@ void ProfileRow::updateRow(const HardwareProfile &profile, const ProfileSelectio
         toggle_->setChecked(selection.selected(profile.id));
     }
     toggle_->setVisible(Presentation::profileToggleable(profile));
+    stopStaged_ = selection.serviceDisableStaged(profile.id);
+    stop_->setVisible(ProfileSelection::canDisableServices(profile));
+    stop_->setText(stopStaged_ ? tr("Keep services running") : tr("Stop services"));
+    stop_->setToolTip(stopStaged_ ? QString()
+        : tr("Stop and disable %1. Packages stay installed.").arg(profile.services.join(QStringLiteral(", "))));
+    stop_->setAccessibleName(stop_->text() + QStringLiteral(": ") + name);
     toggle_->setAccessibleName(name);
     toggle_->setAccessibleDescription(state.text);
     if (detailsButton_) detailsButton_->setAccessibleName(tr("Profile details: %1").arg(name));

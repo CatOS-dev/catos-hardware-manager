@@ -33,6 +33,7 @@ private:
     void updateFooter();
     void selectProfile(const QString &id, bool selected);
     void selectRecommended();
+    void stageServiceStop(const QString &id, bool staged);
 
     HardwareSnapshot snapshot_;
     ProfileSelection selection_;

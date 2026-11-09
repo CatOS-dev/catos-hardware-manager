@@ -98,6 +98,7 @@ void ProfileCatalogPage::rebuild()
         for (const auto *profile : profiles) {
             auto *row = new ProfileRow(*profile, selection_, false, this);
             connect(row, &ProfileRow::profileToggled, this, &ProfileCatalogPage::profileToggled);
+            connect(row, &ProfileRow::serviceStopToggled, this, &ProfileCatalogPage::serviceStopToggled);
             rows_.insert(profile->id, row);
             content_->addWidget(row);
         }

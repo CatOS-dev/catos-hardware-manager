@@ -36,6 +36,7 @@ bool Presentation::hasPendingChange(const HardwareProfile &profile, const Profil
 {
     const bool selected = selection.selected(profile.id);
     if (profile.source == ProfileSource::Chwd) return selected != profile.installed;
+    if (selection.serviceDisableStaged(profile.id) && ProfileSelection::canDisableServices(profile)) return true;
     return profile.applicable && !profile.ready && selected;
 }
 
@@ -125,6 +126,8 @@ StatusText Presentation::profileState(const HardwareProfile &profile, const Prof
     if (!profile.applicable) return {QCoreApplication::translate("Presentation", "Not applicable"), StatusLevel::Neutral};
     if (!profile.conflictingPackages.isEmpty())
         return {QCoreApplication::translate("Presentation", "Managed by %1").arg(profile.conflictingPackages.join(QStringLiteral(", "))), StatusLevel::Neutral};
+    if (profile.ready && selection.serviceDisableStaged(profile.id))
+        return {QCoreApplication::translate("Presentation", "Services will be stopped"), StatusLevel::Pending};
     if (profile.ready) return {QCoreApplication::translate("Presentation", "Ready"), StatusLevel::Ok};
     if (selected) return {QCoreApplication::translate("Presentation", "Will be installed"), StatusLevel::Pending};
     if (profile.missingPackages.isEmpty()) return {QCoreApplication::translate("Presentation", "Service not running"), StatusLevel::Attention};

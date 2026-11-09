@@ -67,7 +67,9 @@ ApplyResult ApplyDialog::execute(QWidget *parent, const HardwareSnapshot &snapsh
     const QStringList toRemove = selection.removingChwd(snapshot);
     const QStringList toInstall = selection.installingChwd(snapshot);
     const QStringList support = selection.enablingSupport(snapshot);
-    if (toRemove.isEmpty() && toInstall.isEmpty() && support.isEmpty()) return ApplyResult::Cancelled;
+    const QStringList stopServices = selection.disablingServices(snapshot);
+    if (toRemove.isEmpty() && toInstall.isEmpty() && support.isEmpty() && stopServices.isEmpty())
+        return ApplyResult::Cancelled;
 
     QDialog confirm(parent);
     confirm.setWindowTitle(QObject::tr("Apply hardware configurations"));
@@ -83,6 +85,7 @@ ApplyResult ApplyDialog::execute(QWidget *parent, const HardwareSnapshot &snapsh
     addGroup(details, container, QObject::tr("Remove"), toRemove, snapshot, false);
     addGroup(details, container, QObject::tr("Install"), toInstall, snapshot, false);
     addGroup(details, container, QObject::tr("Hardware support"), support, snapshot, true);
+    addGroup(details, container, QObject::tr("Stop services"), stopServices, snapshot, true);
     auto *toggle = new QToolButton(container);
     toggle->setText(QObject::tr("Package and service changes"));
     toggle->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
@@ -142,6 +145,7 @@ ApplyResult ApplyDialog::execute(QWidget *parent, const HardwareSnapshot &snapsh
     for (const auto &name : toRemove) arguments << QStringLiteral("--remove") << name;
     for (const auto &name : toInstall) arguments << QStringLiteral("--install") << name;
     for (const auto &name : support) arguments << QStringLiteral("--support-install") << name;
+    for (const auto &id : stopServices) arguments << QStringLiteral("--disable-services") << id;
 
     RunningDialog progress(parent);
     progress.setWindowTitle(QObject::tr("Applying hardware configurations"));

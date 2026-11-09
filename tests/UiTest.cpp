@@ -343,6 +343,32 @@ private slots:
         for (auto *button : page.findChildren<QPushButton *>())
             QVERIFY(button->text() != QLatin1String("Set up scanner detection"));
     }
+
+    void readyServiceProfileOffersExplicitStop()
+    {
+        auto snapshot = laptop();
+        auto &bluez = snapshot.profiles[2];
+        bluez.ready = bluez.installed = true;
+        bluez.missingPackages.clear();
+        bluez.services = {QStringLiteral("bluetooth.service")};
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        ProfileRow row(bluez, selection, false);
+        QVERIFY(row.toggle()->isHidden());  // a ready system profile is never unchecked
+        QVERIFY(!row.stopButton()->isHidden());
+        QSignalSpy spy(&row, &ProfileRow::serviceStopToggled);
+        row.stopButton()->click();
+        QCOMPARE(spy.size(), 1);
+        QCOMPARE(spy.first().at(1).toBool(), true);
+        QVERIFY(selection.stageServiceDisable(bluez.id, true, snapshot));
+        row.updateRow(bluez, selection, false);
+        QCOMPARE(row.stateText(), QStringLiteral("Services will be stopped"));
+        row.stopButton()->click();
+        QCOMPARE(spy.last().at(1).toBool(), false);
+        // Profiles without services have nothing to stop.
+        ProfileRow camera(snapshot.profiles[3], selection, false);
+        QVERIFY(camera.stopButton()->isHidden());
+    }
 };
 
 QTEST_MAIN(UiTest)

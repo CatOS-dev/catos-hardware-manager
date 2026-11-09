@@ -27,6 +27,7 @@ signals:
     void reportRequested();
     void recommendedRequested();
     void profileToggled(const QString &id, bool checked);
+    void serviceStopToggled(const QString &id, bool staged);
 protected:
     void changeEvent(QEvent *event) override;
 private:

@@ -200,6 +200,12 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
             &HardwareManagerWindow::selectProfile, Qt::QueuedConnection);
     connect(catalog_, &ProfileCatalogPage::profileToggled, this,
             &HardwareManagerWindow::selectProfile, Qt::QueuedConnection);
+    connect(devices_, &DevicesPage::serviceStopToggled, this,
+            &HardwareManagerWindow::stageServiceStop, Qt::QueuedConnection);
+    connect(installed_, &InstalledProfilesPage::serviceStopToggled, this,
+            &HardwareManagerWindow::stageServiceStop, Qt::QueuedConnection);
+    connect(catalog_, &ProfileCatalogPage::serviceStopToggled, this,
+            &HardwareManagerWindow::stageServiceStop, Qt::QueuedConnection);
     showPage(0);
     QTimer::singleShot(0, this, [this] { refresh(); });
 }
@@ -253,6 +259,13 @@ void HardwareManagerWindow::selectProfile(const QString &id, bool selected)
     if (!snapshot_.isValid()) return;
     if (!selection_.select(id, selected, snapshot_))
         statusBar()->showMessage(tr("This profile cannot be changed right now."), 5000);
+    showData();
+}
+
+void HardwareManagerWindow::stageServiceStop(const QString &id, bool staged)
+{
+    if (!snapshot_.isValid()) return;
+    selection_.stageServiceDisable(id, staged, snapshot_);
     showData();
 }
 

@@ -27,6 +27,7 @@ public:
     QList<ProfileRow *> profileRows() const { return profiles_.values(); }
 signals:
     void profileToggled(const QString &id, bool checked);
+    void serviceStopToggled(const QString &id, bool staged);
     void expansionChanged(const QString &deviceId, bool expanded);
 private:
     void setExpanded(bool expanded);
