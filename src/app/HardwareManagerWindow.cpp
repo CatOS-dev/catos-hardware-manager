@@ -132,7 +132,8 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
         applying_ = true;
         const ApplyResult result = ApplyDialog::execute(this, snapshot_, selection_);
         applying_ = false;
-        if (result != ApplyResult::Cancelled)
+        // Cancelled confirmation or authorisation: nothing ran, keep everything.
+        if (result == ApplyResult::Applied || result == ApplyResult::Failed)
             refresh(result == ApplyResult::Failed);
     });
     actions->addWidget(apply_);
@@ -207,7 +208,10 @@ HardwareManagerWindow::HardwareManagerWindow(QWidget *parent) : QMainWindow(pare
     connect(catalog_, &ProfileCatalogPage::serviceStopToggled, this,
             &HardwareManagerWindow::stageServiceStop, Qt::QueuedConnection);
     showPage(0);
-    QTimer::singleShot(0, this, [this] { refresh(); });
+    QTimer::singleShot(0, this, [this] {
+        refresh();
+        ApplyDialog::checkInterrupted(this);
+    });
 }
 
 void HardwareManagerWindow::showPage(int index)

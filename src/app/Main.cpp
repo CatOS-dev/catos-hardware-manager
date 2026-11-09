@@ -11,6 +11,7 @@
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
+    app.setOrganizationName(QStringLiteral("CatOS"));
     app.setApplicationName(QStringLiteral("CatOS Hardware Manager"));
     app.setWindowIcon(HardwareUi::catosBrandIcon());
     QTranslator translator;

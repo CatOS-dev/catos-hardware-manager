@@ -53,6 +53,8 @@ add_library(catos-hardware-ui STATIC
     src/widgets/ProfileRow.cpp
     src/dialogs/ApplyDialog.h
     src/dialogs/ApplyDialog.cpp
+    src/dialogs/TransactionProtocol.h
+    src/dialogs/TransactionProtocol.cpp
 )
 target_link_libraries(catos-hardware-ui PUBLIC
     catos-hardware-core Qt6::Widgets Qt6::Svg Qt6::Concurrent

@@ -1,5 +1,7 @@
 // Offscreen UI tests. Rows and pages are fed fixture snapshots, so these
 // run without udev, pacman or CHWD.
+#include "dialogs/ApplyDialog.h"
+#include "dialogs/TransactionProtocol.h"
 #include "pages/DevicesPage.h"
 #include "pages/ProfileCatalogPage.h"
 #include "widgets/DeviceRow.h"
@@ -8,6 +10,7 @@
 #include "widgets/ProfileRow.h"
 
 #include <QCheckBox>
+#include <QDialogButtonBox>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
@@ -368,6 +371,86 @@ private slots:
         // Profiles without services have nothing to stop.
         ProfileRow camera(snapshot.profiles[3], selection, false);
         QVERIFY(camera.stopButton()->isHidden());
+    }
+
+    void protocolErrorsAreExplained()
+    {
+        const auto snapshot = laptop();
+        const auto explain = [&snapshot](const QString &line) {
+            return TransactionProtocol::errorMessage(line.split(QLatin1Char('|')), snapshot);
+        };
+        QVERIFY(explain(QStringLiteral("ERROR|package-manager|locked")).contains(QStringLiteral("package manager")));
+        QVERIFY(explain(QStringLiteral("ERROR|state|changed")).contains(QStringLiteral("changed")));
+        QCOMPARE(explain(QStringLiteral("ERROR|verify|nvidia-dkms|not-installed")), QStringLiteral("nvidia-dkms was not installed."));
+        QCOMPARE(explain(QStringLiteral("ERROR|support|support:bluez|still-active")),
+                 QStringLiteral("The services of bluez are still running."));
+        QCOMPARE(explain(QStringLiteral("ERROR|step|install|nvidia-dkms|failed")),
+                 QStringLiteral("\"Install driver\" failed for nvidia-dkms."));
+        QVERIFY(explain(QStringLiteral("PLAN|1|1|install|x")).isEmpty());
+        QCOMPARE(TransactionProtocol::actionName(QStringLiteral("preflight")), QStringLiteral("Download packages"));
+        QCOMPARE(TransactionProtocol::targetName(QStringLiteral("packages"), QStringLiteral("support:bluez"), snapshot),
+                 QStringLiteral("bluez"));
+    }
+
+    void protocolRecognisesInterruptionsAndCancelledAuthorization()
+    {
+        QVERIFY(!TransactionProtocol::interrupted({}));
+        QVERIFY(TransactionProtocol::interrupted("2026-11-09T10:00:00Z START\nPLAN|1|2|remove|old\nSTEP|1|2|remove|old\n"));
+        QVERIFY(!TransactionProtocol::interrupted("START\nDONE\nDONE\n"));
+        QVERIFY(!TransactionProtocol::interrupted("START\nERROR|package-manager|locked\nFAILED\n"));
+        QVERIFY(TransactionProtocol::authorizationCancelled(126, false));
+        QVERIFY(TransactionProtocol::authorizationCancelled(127, false));
+        QVERIFY(!TransactionProtocol::authorizationCancelled(127, true));
+        QVERIFY(!TransactionProtocol::authorizationCancelled(4, false));
+    }
+
+    void confirmationPutsRemovalFirstAndDefaultsToCancel()
+    {
+        auto snapshot = laptop();
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        QVERIFY(selection.select(QStringLiteral("chwd:nvidia-dkms"), true, snapshot));
+        QVERIFY(selection.select(QStringLiteral("support:bluez"), true, snapshot));
+        ApplyConfirmation dialog(snapshot, selection, false);
+        QCOMPARE(dialog.groupTitles(), QStringList({QStringLiteral("Remove drivers"), QStringLiteral("Install drivers"),
+                                                     QStringLiteral("Install hardware support")}));
+        QVERIFY(dialog.notes().contains(QStringLiteral("Restart the computer after the driver change.")));
+        auto *buttons = dialog.findChild<QDialogButtonBox *>();
+        QVERIFY(buttons->button(QDialogButtonBox::Cancel)->isDefault());
+    }
+
+    void confirmationExplainsPreflightFacts()
+    {
+        auto snapshot = laptop();
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        QVERIFY(selection.select(QStringLiteral("chwd:nvidia-dkms"), true, snapshot));
+        ApplyConfirmation dialog(snapshot, selection, false);
+        ApplyPreflight preflight;
+        preflight.kernelsWithoutHeaders = {QStringLiteral("6.17.1-2-cachyos")};
+        preflight.secureBoot = true;
+        preflight.updatesPending = true;
+        preflight.downloadBytes = 300 * 1024 * 1024;
+        dialog.setPreflight(preflight);
+        const QString notes = dialog.notes().join(QLatin1Char('\n'));
+        QVERIFY(notes.contains(QStringLiteral("6.17.1-2-cachyos")));
+        QVERIFY(notes.contains(QStringLiteral("Secure Boot")));
+        QVERIFY(notes.contains(QStringLiteral("System updates are available")));
+        QVERIFY(notes.contains(QStringLiteral("no snapshot will be created")));
+        QVERIFY(notes.contains(QStringLiteral("Download size")));
+        // Advisory only: the confirm button stays available.
+        auto *buttons = dialog.findChild<QDialogButtonBox *>();
+        for (auto *button : buttons->buttons()) QVERIFY(button->isEnabled());
+    }
+
+    void confirmationWarnsWhenOnlyRemovingADriver()
+    {
+        auto snapshot = laptop();
+        ProfileSelection selection;
+        selection.refresh(snapshot, false);
+        QVERIFY(selection.select(QStringLiteral("chwd:nvidia-open-dkms"), false, snapshot));
+        ApplyConfirmation dialog(snapshot, selection, false);
+        QVERIFY(dialog.notes().join(QLatin1Char('\n')).contains(QStringLiteral("generic kernel driver")));
     }
 };
 
