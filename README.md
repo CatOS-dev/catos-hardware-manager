@@ -34,6 +34,8 @@ conjunction of supplied conditions; rules themselves are alternatives:
 - bus: real device bus (PCI, USB, ACPI or a supported scanner backend)
 - vendor, device: numerical hardware IDs
 - driver: current bound kernel driver
+- module: kernel module the device's modalias resolves to (works even when
+  the driver failed to bind, e.g. because firmware is missing)
 - modalias_prefix: Linux kernel alias prefix
 - dmi_vendor: actual system DMI vendor
 - acpi_hid: ACPI hardware ID
@@ -54,7 +56,13 @@ A checkbox only stages a change. The user confirms all changes before a
 single pkexec authorization. CHWD profiles can be installed and removed;
 system support Profiles install packages and enable declared system services.
 Those packages may be shared, so unchecking an already-installed support
-Profile does not silently remove them.
+Profile does not silently remove them. A ready support Profile with services
+offers an explicit "Stop services" action instead, which runs
+`systemctl disable --now` for its services and keeps the packages.
+
+The confirmation lists driver removals first and notes, without blocking,
+installed kernels that lack headers for a DKMS build, Secure Boot, pending
+system updates, whether snapper takes a snapshot and the download size.
 
 Support packages are installed in one pacman invocation. CHWD operations,
 pacman and service changes still run sequentially, not as an atomic rollback-
@@ -63,7 +71,8 @@ system state is refreshed.
 
 ## Build
 
-Requires Qt 6 Widgets/SVG/Concurrent, libudev, yaml-cpp, CMake and Ninja.
+Requires Qt 6 Widgets/SVG/Concurrent/DBus, libudev, yaml-cpp, CMake and Ninja.
+Device discovery tests additionally use umockdev (optional).
 An installed CHWD with JSON support is used for CHWD-only profiles. Other
 device discovery continues to work if CHWD is unavailable.
 
@@ -73,6 +82,31 @@ device discovery continues to work if CHWD is unavailable.
 
 Installed GUI: /usr/bin/catos-hardware-manager
 Privileged executor: /usr/lib/catos/catos-hardware-apply
+
+## Command line
+
+For installers and first-boot setup:
+
+    catos-hardware-manager --list [--json]
+    catos-hardware-manager --apply-recommended [--yes]
+
+`--apply-recommended` applies what "Select recommended" stages and never
+removes an installed driver. Without `--yes` it asks on a terminal and refuses
+otherwise. As root it runs the executor directly, otherwise through pkexec.
+Exit codes: 0 done or nothing to do, 1 failed or declined, 2 usage error,
+3 authorization cancelled.
+
+## Translations
+
+The UI language follows the desktop language list in order (`LANGUAGE`
+first). Simplified Chinese is maintained by hand in
+`translations/*_zh_CN.ts` and `name_zh`/`description_zh` profile fields.
+Traditional Chinese is generated from it with OpenCC:
+
+    lupdate -no-obsolete -locations none src -ts translations/catos-hardware-manager_zh_CN.ts
+    tools/sync-traditional-chinese.py
+
+Put corrections for the Traditional text into the script's replacement table.
 
 ## Diagnostics and device support
 
@@ -87,8 +121,9 @@ Recommended selection includes only support profiles explicitly marked
 udev events trigger a debounced refresh that preserves pending choices.
 Diagnostic reports have a local preview and export only allowlisted hardware
 IDs, drivers, profile status, missing packages and service status. Device names,
-serials, addresses and raw logs are excluded. Device test/settings shortcuts
-appear when their corresponding desktop tools are installed.
+serials, addresses and raw logs are excluded. Device test/settings buttons
+open KDE System Settings modules or KDE applications and only appear when the
+module or application is installed.
 
 Driver switches download declared packages, dependencies and recovery packages
 before removal. This catches download/dependency failures, but cannot simulate
@@ -105,8 +140,10 @@ operation locally, and refreshes actual state so retry targets remaining work.
     cmake --build build
     ctest --test-dir build --output-on-failure
 
-Regression tests cover stopped services, disconnected devices, scanner discovery
-bootstrap, download failure before driver removal, recovery after failed driver
-installation, pending selection refresh and diagnostic report privacy. Firmware
-page tests use a separate fake client process to exercise asynchronous JSON
-responses, absent updates and invalid replies without changing the host.
+- hardware-regression: selection, request validation, transactions with fake
+  runners, microcode boot detection, preflight checks, diagnostic privacy.
+- device-discovery: libudev discovery against umockdev sysfs trees (GPU behind
+  a bridge, USB Bluetooth, unbound smart card, vendor-specific reader, camera,
+  hybrid graphics). Runs through umockdev-wrapper.
+- ui: offscreen widget tests for row presentation, in-place updates, focus
+  restoration, palette changes, the confirmation dialog and protocol parsing.
